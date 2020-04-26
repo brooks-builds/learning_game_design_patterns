@@ -7,6 +7,7 @@ class Player {
         this.accelecation = createVector(0, 0);
         this.jumpForce = createVector(0, -10);
         this.isJumping = false;
+        this.score = 0;
     }
 
     render() {
@@ -37,5 +38,16 @@ class Player {
         this.velocity.add(this.accelecation);
         this.location.add(this.velocity);
         this.accelecation.mult(0);
+    }
+
+    isHitting(obstacle) {
+        return this.location.x < obstacle.location.x + obstacle.width &&
+            this.location.x + this.width > obstacle.location.x &&
+            this.location.y < obstacle.location.y + obstacle.height &&
+            this.location.y + this.height > obstacle.location.y;
+    }
+
+    incrementScore() {
+        this.score += 1;
     }
 }
