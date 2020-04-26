@@ -6,7 +6,7 @@ function setup() {
         new Obstacle(createVector(800, 680)),
         new Obstacle(createVector(1200, 680))
     );
-    runSpeed = createVector(-5, 0);
+    initializeGameSpeed();
     gameRunning = true;
 }
 
@@ -18,7 +18,6 @@ function draw() {
         player.render();
 
         if (keyIsDown(KEYCODE_SPACE)) {
-            console.log('space pressed')
             player.jump();
         }
         player.update();
@@ -46,10 +45,21 @@ function draw() {
             (width / 2) - (textWidth(restartGameText) / 2),
             (height / 2) + 10
 
-        )
+        );
+
+        if (keyIsDown(KEYCODE_SPACE)) {
+            gameRunning = true;
+            player.reset();
+            obstacles.forEach(obstacle => obstacle.initialize());
+            initializeGameSpeed();
+        }
     }
     textSize(18);
     text(`Score: ${player.score}`, 5, 20);
+}
+
+function initializeGameSpeed() {
+    runSpeed = createVector(-5, 0);
 }
 
 let player;

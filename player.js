@@ -1,13 +1,10 @@
 class Player {
     constructor(location) {
+        this.initialLocation = location.copy();
+        this.reset();
         this.width = 5;
         this.height = 20;
-        this.location = location;
-        this.velocity = createVector(0, 0);
-        this.accelecation = createVector(0, 0);
         this.jumpForce = createVector(0, -10);
-        this.isJumping = false;
-        this.score = 0;
     }
 
     render() {
@@ -23,7 +20,7 @@ class Player {
     }
 
     applyForce(force) {
-        this.accelecation.add(force);
+        this.acceleration.add(force);
     }
 
     hitGround(groundLocation) {
@@ -35,9 +32,9 @@ class Player {
     }
 
     update() {
-        this.velocity.add(this.accelecation);
+        this.velocity.add(this.acceleration);
         this.location.add(this.velocity);
-        this.accelecation.mult(0);
+        this.acceleration.mult(0);
     }
 
     isHitting(obstacle) {
@@ -49,5 +46,13 @@ class Player {
 
     incrementScore() {
         this.score += 1;
+    }
+
+    reset() {
+        this.score = 0;
+        this.location = this.initialLocation.copy();
+        this.velocity = createVector(0, 0);
+        this.acceleration = createVector(0, 0);
+        this.isJumping = true;
     }
 }

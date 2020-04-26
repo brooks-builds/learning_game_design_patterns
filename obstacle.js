@@ -1,6 +1,7 @@
 class Obstacle {
     constructor(location) {
-        this.location = location;
+        this.initialLocation = location.copy();
+        this.initialize();
         this.width = 15;
         this.height = 15;
         this.increaseSpeedBy = 0.1;
@@ -28,5 +29,9 @@ class Obstacle {
             this.location.x = width + 5;
             player.incrementScore();
         }
+    }
+
+    initialize() {
+        this.location = this.initialLocation.copy();
     }
 }
