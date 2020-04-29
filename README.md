@@ -7,3 +7,7 @@ This is an infinite runner made using OOP in P5.js.
 ## Features to add in
 
 * [ ] High Score tracker - @AndrewLaneX
+
+## Left off at
+
+An undo() method reverses the game state changed by the corresponding 
