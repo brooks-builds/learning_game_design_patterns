@@ -8,6 +8,7 @@ function setup() {
     );
     initializeGameSpeed();
     gameRunning = true;
+
 }
 
 function draw() {
@@ -56,15 +57,31 @@ function draw() {
     }
     textSize(18);
     text(`Score: ${player.score}`, 5, 20);
+    text(`Space bound to: ${inputHandler.keyBinds.jump}`, 5, 40);
 }
 
 function initializeGameSpeed() {
     runSpeed = createVector(-5, 0);
 }
 
+function keyPressed() {
+    if (inputHandler.isRebinding) {
+        console.log('rebinding');
+        inputHandler.bind(keyCode);
+    }
+}
+
+function generateCommands() {
+    return {
+        jump: function (actor) {
+            actor.jump();
+        },
+    };
+}
+
 let player;
-const KEYCODE_SPACE = 32;
 let gravity;
 let obstacles = [];
 let runSpeed;
 let gameRunning;
+let inputHandler = new InputHandler(generateCommands());

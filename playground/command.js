@@ -32,6 +32,7 @@ class InputHandler {
 
 class Command {
     execute() { }
+    undo() { }
 }
 
 class JumpCommand extends Command {
@@ -58,9 +59,17 @@ class MoveUnitCommand extends Command {
         this.unit = unit;
         this.x = x;
         this.y = y;
+        this.xBefore = 0;
+        this.yBefore = 0;
     }
 
     execute() {
+        this.xBefore = this.unit.location.x;
+        this.yBefore = this.unit.location.y;
         this.unit.moveTo(x, y);
+    }
+
+    undo() {
+        this.unit.moveTo(this.xBefore, this.yBefore);
     }
 }

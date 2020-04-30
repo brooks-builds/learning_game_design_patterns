@@ -10,4 +10,4 @@ This is an infinite runner made using OOP in P5.js.
 
 ## Left off at
 
-An undo() method reverses the game state changed by the corresponding 
+Implementing handle input class to jump
