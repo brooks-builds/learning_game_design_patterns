@@ -12,15 +12,18 @@ function setup() {
 }
 
 function draw() {
-    if (gameRunning) {
+    if (inputHandler.isRebinding == false) {
+        console.log('am i rulnning!');
+        const commands = inputHandler.handleInput(gameRunning);
+        commands.forEach(command => command(player));
+    }
+
+    if (gameRunning && inputHandler.isRebinding == false) {
         clear();
         fill(0);
         rect(0, height - 5, width, 5);
         player.render();
 
-        if (keyIsDown(KEYCODE_SPACE)) {
-            player.jump();
-        }
         player.update();
         player.applyForce(gravity);
         player.hitGround(height - 5);
@@ -32,7 +35,7 @@ function draw() {
             }
         });
         runSpeed.x -= 0.01;
-    } else {
+    } else if (gameRunning == false) {
         textSize(30);
         const gameOverText = 'Game Over';
 
@@ -47,17 +50,11 @@ function draw() {
             (height / 2) + 10
 
         );
-
-        if (keyIsDown(KEYCODE_SPACE)) {
-            gameRunning = true;
-            player.reset();
-            obstacles.forEach(obstacle => obstacle.initialize());
-            initializeGameSpeed();
-        }
     }
     textSize(18);
     text(`Score: ${player.score}`, 5, 20);
-    text(`Space bound to: ${inputHandler.keyBinds.jump}`, 5, 40);
+    text(`Space bound to: ${inputHandler.keyBinds.jump.keyCode}`, 5, 40);
+    text(`Restart Game bound to: ${inputHandler.keyBinds.restartGame.keyCode}`, 5, 60);
 }
 
 function initializeGameSpeed() {
@@ -66,7 +63,6 @@ function initializeGameSpeed() {
 
 function keyPressed() {
     if (inputHandler.isRebinding) {
-        console.log('rebinding');
         inputHandler.bind(keyCode);
     }
 }
@@ -76,6 +72,12 @@ function generateCommands() {
         jump: function (actor) {
             actor.jump();
         },
+        restartGame: function () {
+            gameRunning = true;
+            player.reset();
+            obstacles.forEach(obstacle => obstacle.initialize());
+            initializeGameSpeed();
+        }
     };
 }
 
