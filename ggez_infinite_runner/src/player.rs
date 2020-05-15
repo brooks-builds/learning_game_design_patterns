@@ -1,9 +1,11 @@
+use super::obstacle::Obstacle;
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, Rect, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
 
 pub struct Player {
     location: Vector2<f32>,
+    starting_location: Vector2<f32>,
     height: f32,
     width: f32,
     acceleration: Vector2<f32>,
@@ -13,14 +15,17 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(location_x: f32, location_y: f32) -> Player {
+    pub fn new(x: f32, y: f32) -> Player {
         let acceleration = Vector2::new(0.0, 0.0);
         let velocity = Vector2::new(0.0, 0.0);
-        let jump_force = Vector2::new(0.0, -0.1);
+        let jump_force = Vector2::new(0.0, -0.8);
         let is_jumping = false;
+        let location = Vector2::new(x, y);
+        let starting_location = location;
 
         Player {
-            location: Vector2::new(location_x, location_y),
+            location,
+            starting_location,
             height: 50.0,
             width: 15.0,
             acceleration,
@@ -41,6 +46,10 @@ impl Player {
 
     pub fn get_location(&self) -> Point2<f32> {
         Point2::new(self.location.x, self.location.y)
+    }
+
+    pub fn reset_location(&mut self) {
+        self.location = self.starting_location;
     }
 
     pub fn apply_force(&mut self, force: &Vector2<f32>) {
@@ -67,5 +76,15 @@ impl Player {
             self.apply_force(&jump_force);
             self.is_jumping = true;
         }
+    }
+
+    pub fn is_running_into_obstacle(&self, obstacle: &Obstacle) -> bool {
+        let obstacle_location = obstacle.get_location();
+        let (obstacle_width, obstacle_height) = obstacle.get_size();
+
+        self.location.x < obstacle_location.x + obstacle_width
+            && self.location.x + self.width > obstacle_location.x
+            && self.location.y < obstacle_location.y + obstacle_height
+            && self.location.y + self.height > obstacle_location.y
     }
 }

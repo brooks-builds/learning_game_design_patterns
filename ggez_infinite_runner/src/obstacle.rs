@@ -5,6 +5,7 @@ use ggez::{Context, GameResult};
 pub struct Obstacle {
     location: Vector2<f32>,
     location_to_reset_to: Vector2<f32>,
+    starting_location: Vector2<f32>,
     velocity: Vector2<f32>,
     width: f32,
     height: f32,
@@ -15,7 +16,8 @@ impl Obstacle {
     pub fn new(location_x: f32, location_y: f32, size: f32, arena_width: f32) -> Obstacle {
         let location = Vector2::new(location_x, location_y);
         let location_to_reset_to = Vector2::new(arena_width + size, location_y);
-        let velocity = Vector2::new(-0.1, 0.0);
+        let starting_location = location;
+        let velocity = Vector2::new(-0.9, 0.0);
         let width = size;
         let height = size;
         let speed_increase_rate = -0.01;
@@ -23,6 +25,7 @@ impl Obstacle {
         Obstacle {
             location,
             location_to_reset_to,
+            starting_location,
             velocity,
             width,
             height,
@@ -45,6 +48,10 @@ impl Obstacle {
         Point2::new(self.location.x, self.location.y)
     }
 
+    pub fn reset_to_start(&mut self) {
+        self.location = self.starting_location;
+    }
+
     pub fn run(&mut self) {
         self.location += self.velocity;
     }
@@ -59,5 +66,9 @@ impl Obstacle {
 
     pub fn increase_speed(&mut self) {
         self.velocity.x += self.speed_increase_rate;
+    }
+
+    pub fn get_size(&self) -> (f32, f32) {
+        (self.width, self.height)
     }
 }
