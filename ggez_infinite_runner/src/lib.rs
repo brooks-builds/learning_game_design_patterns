@@ -4,6 +4,7 @@ mod player;
 mod input_handler;
 mod command_trait;
 mod jump_command;
+mod reset_game_command;
 
 use game_state::GameState;
 use ggez::event::EventHandler;
@@ -16,7 +17,10 @@ use obstacle::Obstacle;
 use player::Player;
 use input_handler::InputHandler;
 use jump_command::JumpCommand;
-use command_trait::Command;
+use command_trait::ActorCommand;
+use command_trait::GameCommand;
+use reset_game_command::ResetGameCommand;
+
 
 pub struct MyGame {
     player: Player,
@@ -57,7 +61,7 @@ impl MyGame {
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let game_state = GameState::Help;
         let score = 0;
-        let input_handler = InputHandler::new(JumpCommand::new());
+        let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
 
         Ok(MyGame {
             player,
@@ -203,12 +207,9 @@ impl EventHandler for MyGame {
                 self.player.apply_force(&self.gravity);
                 self.player.run();
                 self.player.hit_ground(arena_height);
-                if let Some(jump_command) = self.input_handler.handle_input(context) {
+                if let Some(jump_command) = self.input_handler.handle_player_input(context) {
                     jump_command.execute(&mut self.player);
                 }
-                // if keyboard::is_key_pressed(context, KeyCode::Space) {
-                //     self.player.jump();
-                // }
                 self.obstacle_1.run();
                 if self.obstacle_1.is_offscreen(arena_width) {
                     self.obstacle_1.reset_location();
@@ -233,9 +234,9 @@ impl EventHandler for MyGame {
                 }
             }
             GameState::GameOver => {
-                if keyboard::is_key_pressed(context, KeyCode::Space) {
-                    self.reset_game();
-                }
+                if let Some(command) = &mut self.input_handler.handle_game_input(context) {
+                    command.execute(self);
+                }        
             }
             GameState::Help => (),
         }

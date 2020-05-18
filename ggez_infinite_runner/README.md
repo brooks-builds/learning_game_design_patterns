@@ -18,6 +18,8 @@
 
 ### Command
 
+* [ ] Try passing in references to what I need to reset in the reset_game_command struct
+
 * [ ] Create button to rebind keys
 * [ ] Allow rebinding of jump key
 * [ ] Allow rebinding of restart game key
