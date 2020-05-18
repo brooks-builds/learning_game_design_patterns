@@ -1,6 +1,9 @@
 mod game_state;
 mod obstacle;
 mod player;
+mod input_handler;
+mod command_trait;
+mod jump_command;
 
 use game_state::GameState;
 use ggez::event::EventHandler;
@@ -11,6 +14,9 @@ use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, timer, Context, GameResult};
 use obstacle::Obstacle;
 use player::Player;
+use input_handler::InputHandler;
+use jump_command::JumpCommand;
+use command_trait::Command;
 
 pub struct MyGame {
     player: Player,
@@ -23,6 +29,7 @@ pub struct MyGame {
     time_since_start_to_increase_speed: u64,
     game_state: GameState,
     score: u64,
+    input_handler: InputHandler,
 }
 
 impl MyGame {
@@ -50,6 +57,7 @@ impl MyGame {
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let game_state = GameState::Help;
         let score = 0;
+        let input_handler = InputHandler::new(JumpCommand::new());
 
         Ok(MyGame {
             player,
@@ -62,6 +70,7 @@ impl MyGame {
             time_since_start_to_increase_speed,
             game_state,
             score,
+            input_handler
         })
     }
 
@@ -194,9 +203,12 @@ impl EventHandler for MyGame {
                 self.player.apply_force(&self.gravity);
                 self.player.run();
                 self.player.hit_ground(arena_height);
-                if keyboard::is_key_pressed(context, KeyCode::Space) {
-                    self.player.jump();
+                if let Some(jump_command) = self.input_handler.handle_input(context) {
+                    jump_command.execute(&mut self.player);
                 }
+                // if keyboard::is_key_pressed(context, KeyCode::Space) {
+                //     self.player.jump();
+                // }
                 self.obstacle_1.run();
                 if self.obstacle_1.is_offscreen(arena_width) {
                     self.obstacle_1.reset_location();
