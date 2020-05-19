@@ -6,12 +6,14 @@ mod command_trait;
 mod jump_command;
 mod reset_game_command;
 mod score;
+mod button;
 
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
 use ggez::input::keyboard;
 use ggez::input::keyboard::{KeyCode, KeyMods};
+use ggez::input::mouse;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, timer, Context, GameResult};
 use obstacle::Obstacle;
@@ -22,6 +24,7 @@ use command_trait::ActorCommand;
 use command_trait::GameCommand;
 use reset_game_command::ResetGameCommand;
 use score::Score;
+use button::Button;
 
 
 pub struct MyGame {
@@ -36,6 +39,7 @@ pub struct MyGame {
     game_state: GameState,
     score: Score,
     input_handler: InputHandler,
+    rebind_space_button: Button,
 }
 
 impl MyGame {
@@ -64,6 +68,7 @@ impl MyGame {
         let game_state = GameState::Playing;
         let score = Score::new();
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
+        let rebind_space_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
 
         Ok(MyGame {
             player,
@@ -76,7 +81,8 @@ impl MyGame {
             time_since_start_to_increase_speed,
             game_state,
             score,
-            input_handler
+            input_handler,
+            rebind_space_button,
         })
     }
 
@@ -188,6 +194,8 @@ impl MyGame {
             )),
         )?;
 
+        self.rebind_space_button.draw(context)?;
+
         Ok(())
     }
 }
@@ -238,7 +246,14 @@ impl EventHandler for MyGame {
                     );
                 }        
             }
-            GameState::Help => (),
+            GameState::Help => {
+                if mouse::button_pressed(context, mouse::MouseButton::Left) {
+                    let mouse_position = mouse::position(context);
+                    if self.rebind_space_button.is_being_clicked(mouse_position.into()) {
+                        println!("rebind space button clicked!");
+                    }
+                }
+            },
         }
 
         Ok(())
