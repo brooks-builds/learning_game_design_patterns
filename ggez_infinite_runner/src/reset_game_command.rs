@@ -1,6 +1,8 @@
 use super::command_trait::GameCommand;
-use super::MyGame;
 use super::GameState;
+use super::Player;
+use super::Obstacle;
+use super::Score;
 
 pub struct ResetGameCommand {}
 
@@ -11,11 +13,11 @@ impl ResetGameCommand {
 }
 
 impl GameCommand for ResetGameCommand {
-    fn execute(&self, my_game: &mut MyGame) {
-        my_game.player.reset_location();
-        my_game.score = 0;
-        my_game.obstacle_1.reset_to_start();
-        my_game.obstacle_2.reset_to_start();
-        my_game.game_state = GameState::Playing;
+    fn execute(&self, player: &mut Player, score: &mut Score, obstacle_1: &mut Obstacle, obstacle_2: &mut Obstacle, game_state: &mut GameState) {
+        player.reset_location();
+        score.reset();
+        obstacle_1.reset_to_start();
+        obstacle_2.reset_to_start();
+        game_state.playing();
     }
 }

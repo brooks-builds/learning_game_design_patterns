@@ -5,6 +5,7 @@ mod input_handler;
 mod command_trait;
 mod jump_command;
 mod reset_game_command;
+mod score;
 
 use game_state::GameState;
 use ggez::event::EventHandler;
@@ -20,6 +21,7 @@ use jump_command::JumpCommand;
 use command_trait::ActorCommand;
 use command_trait::GameCommand;
 use reset_game_command::ResetGameCommand;
+use score::Score;
 
 
 pub struct MyGame {
@@ -32,7 +34,7 @@ pub struct MyGame {
     increase_speed_every_seconds: u64,
     time_since_start_to_increase_speed: u64,
     game_state: GameState,
-    score: u64,
+    score: Score,
     input_handler: InputHandler,
 }
 
@@ -59,8 +61,8 @@ impl MyGame {
         let obstacle_mesh = obstacle_1.create_mesh(context)?;
         let increase_speed_every_seconds = 5;
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
-        let game_state = GameState::Help;
-        let score = 0;
+        let game_state = GameState::Playing;
+        let score = Score::new();
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
 
         Ok(MyGame {
@@ -80,7 +82,7 @@ impl MyGame {
 
     fn draw_end_game_screen(&self, context: &mut Context) -> GameResult<()> {
         let mut game_over_text = Text::new("Game Over");
-        let mut score_text = Text::new(format!("You jumped over {} obstacles", self.score));
+        let mut score_text = Text::new(format!("You jumped over {} obstacles", self.score.get()));
         let mut restart_text = Text::new("Restart game by pressing Space");
         let (arena_width, arena_height) = graphics::drawable_size(context);
 
@@ -123,7 +125,7 @@ impl MyGame {
     }
 
     fn draw_score(&self, context: &mut Context) -> GameResult<()> {
-        let mut score_text = Text::new(format!("Score: {}", self.score));
+        let mut score_text = Text::new(format!("Score: {}", self.score.get()));
         score_text.set_font(Font::default(), Scale::uniform(25.0));
 
         graphics::draw(
@@ -143,14 +145,6 @@ impl MyGame {
             &fps_text,
             DrawParam::default().dest(Point2::new(5.0, 30.0)),
         )
-    }
-
-    fn reset_game(&mut self) {
-        self.player.reset_location();
-        self.score = 0;
-        self.obstacle_1.reset_to_start();
-        self.obstacle_2.reset_to_start();
-        self.game_state = GameState::Playing;
     }
 
     fn draw_help_screen(&self, context: &mut Context) -> GameResult<()> {
@@ -213,12 +207,12 @@ impl EventHandler for MyGame {
                 self.obstacle_1.run();
                 if self.obstacle_1.is_offscreen(arena_width) {
                     self.obstacle_1.reset_location();
-                    self.score += 1;
+                    self.score.increment();
                 }
                 self.obstacle_2.run();
                 if self.obstacle_2.is_offscreen(arena_width) {
                     self.obstacle_2.reset_location();
-                    self.score += 1;
+                    self.score.increment();
                 }
                 let time_since_start = timer::time_since_start(context).as_secs();
                 if time_since_start >= self.time_since_start_to_increase_speed {
@@ -235,7 +229,13 @@ impl EventHandler for MyGame {
             }
             GameState::GameOver => {
                 if let Some(command) = &mut self.input_handler.handle_game_input(context) {
-                    command.execute(self);
+                    command.execute(
+                        &mut self.player,
+                        &mut self.score,
+                        &mut self.obstacle_1,
+                        &mut self.obstacle_2,
+                        &mut self.game_state,
+                    );
                 }        
             }
             GameState::Help => (),
