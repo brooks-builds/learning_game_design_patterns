@@ -14,12 +14,15 @@
 * [x] Game can be restarted
 * [x] escape key will take player to help screen
 
+### Nice Things to Have
+
+* [ ] Display the rebinding buttons next to the commands they are rebinding
+
 ## Patterns
 
 ### Command
 
 * [x] Try passing in references to what I need to reset in the reset_game_command struct
-
 * [x] Create button to rebind keys
-* [ ] Allow rebinding of jump key
-* [ ] Allow rebinding of restart game key
+* [x] Allow rebinding of jump key
+* [x] Allow rebinding of restart game key
