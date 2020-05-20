@@ -1,13 +1,16 @@
+mod button;
+mod command_trait;
 mod game_state;
+mod input_handler;
+mod jump_command;
 mod obstacle;
 mod player;
-mod input_handler;
-mod command_trait;
-mod jump_command;
 mod reset_game_command;
 mod score;
-mod button;
 
+use button::Button;
+use command_trait::ActorCommand;
+use command_trait::GameCommand;
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
@@ -16,16 +19,12 @@ use ggez::input::keyboard::{KeyCode, KeyMods};
 use ggez::input::mouse;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, timer, Context, GameResult};
-use obstacle::Obstacle;
-use player::Player;
 use input_handler::InputHandler;
 use jump_command::JumpCommand;
-use command_trait::ActorCommand;
-use command_trait::GameCommand;
+use obstacle::Obstacle;
+use player::Player;
 use reset_game_command::ResetGameCommand;
 use score::Score;
-use button::Button;
-
 
 pub struct MyGame {
     player: Player,
@@ -39,7 +38,8 @@ pub struct MyGame {
     game_state: GameState,
     score: Score,
     input_handler: InputHandler,
-    rebind_space_button: Button,
+    rebind_jump_button: Button,
+    rebind_reset_game_button: Button,
 }
 
 impl MyGame {
@@ -68,7 +68,8 @@ impl MyGame {
         let game_state = GameState::Playing;
         let score = Score::new();
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
-        let rebind_space_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
+        let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
+        let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
 
         Ok(MyGame {
             player,
@@ -82,14 +83,18 @@ impl MyGame {
             game_state,
             score,
             input_handler,
-            rebind_space_button,
+            rebind_jump_button,
+            rebind_reset_game_button,
         })
     }
 
     fn draw_end_game_screen(&self, context: &mut Context) -> GameResult<()> {
         let mut game_over_text = Text::new("Game Over");
         let mut score_text = Text::new(format!("You jumped over {} obstacles", self.score.get()));
-        let mut restart_text = Text::new("Restart game by pressing Space");
+        let mut restart_text = Text::new(format!(
+            "Restart game by pressing {}",
+            self.input_handler.get_reset_game_keycode()
+        ));
         let (arena_width, arena_height) = graphics::drawable_size(context);
 
         game_over_text.set_font(Font::default(), Scale::uniform(100.0));
@@ -156,8 +161,11 @@ impl MyGame {
     fn draw_help_screen(&self, context: &mut Context) -> GameResult<()> {
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let mut title = Text::new("Commands");
-        let mut jump = Text::new("Jump - Space");
-        let mut restart = Text::new("Restart Game - Space");
+        let mut jump = Text::new(format!("Jump - {}", self.input_handler.get_jump_keycode()));
+        let mut restart = Text::new(format!(
+            "Restart Game - {}",
+            self.input_handler.get_reset_game_keycode()
+        ));
 
         title.set_font(Font::default(), Scale::uniform(100.0));
         jump.set_font(Font::default(), Scale::uniform(50.0));
@@ -194,7 +202,8 @@ impl MyGame {
             )),
         )?;
 
-        self.rebind_space_button.draw(context)?;
+        self.rebind_jump_button.draw(context)?;
+        self.rebind_reset_game_button.draw(context)?;
 
         Ok(())
     }
@@ -244,16 +253,26 @@ impl EventHandler for MyGame {
                         &mut self.obstacle_2,
                         &mut self.game_state,
                     );
-                }        
+                }
             }
             GameState::Help => {
                 if mouse::button_pressed(context, mouse::MouseButton::Left) {
                     let mouse_position = mouse::position(context);
-                    if self.rebind_space_button.is_being_clicked(mouse_position.into()) {
-                        println!("rebind space button clicked!");
+                    if self.input_handler.not_binding() {
+                        if self
+                            .rebind_jump_button
+                            .is_being_clicked(mouse_position.into())
+                        {
+                            self.input_handler.start_binding_jump();
+                        } else if self
+                            .rebind_reset_game_button
+                            .is_being_clicked(mouse_position.into())
+                        {
+                            self.input_handler.start_binding_reset_game();
+                        }
                     }
                 }
-            },
+            }
         }
 
         Ok(())
@@ -302,6 +321,8 @@ impl EventHandler for MyGame {
                 GameState::GameOver => self.game_state = GameState::Help,
                 GameState::Help => self.game_state = GameState::Playing,
             }
+        } else if self.input_handler.is_rebinding() {
+            self.input_handler.bind_key(keycode);
         }
     }
 }
