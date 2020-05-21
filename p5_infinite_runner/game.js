@@ -8,7 +8,16 @@ function setup() {
     );
     initializeGameSpeed();
     gameRunning = true;
-
+    const trees = [];
+    for(let _count = 0; _count < 1; _count += 1) {
+        const color = new p5.Color();
+        color.setGreen(150);
+        color.setAlpha(50);
+        trees.push(
+            new Tree(50, 50, 5, 15, color),
+        )
+    }
+    world = new World(trees);
 }
 
 function draw() {
@@ -17,9 +26,11 @@ function draw() {
         const commands = inputHandler.handleInput(gameRunning);
         commands.forEach(command => command(player));
     }
-
+    
     if (gameRunning && inputHandler.isRebinding == false) {
         clear();
+        world.drawTrees();
+        alpha(255);
         fill(0);
         rect(0, height - 5, width, 5);
         player.render();
@@ -87,3 +98,4 @@ let obstacles = [];
 let runSpeed;
 let gameRunning;
 let inputHandler = new InputHandler(generateCommands());
+let world;
