@@ -1,22 +1,38 @@
 class Tree {
-    constructor(x, y, width, height, color) {
+    constructor(x, y, trunkWidth, trunkHeight, branchColor) {
         this.trunkLocation = createVector(x, y);
-        this.width = width;
-        this.height = height;
-        this.color = color;
+        this.trunkWidth = trunkWidth;
+        this.trunkHeight = trunkHeight;
+        this.branchColor = branchColor;
+        this.branchesSize = trunkWidth * 4;
     }
-
-    draw() {
-        fill(this.color);
+    
+    draw(trunkColor) {
+        fill(trunkColor);
+        noStroke();
         rect(
             this.trunkLocation.x, 
             this.trunkLocation.y,
-            this.width,
-            this.height
+            this.trunkWidth,
+            this.trunkHeight
             );
+        fill(this.branchColor);
+        this.middleOfTrunk = this.trunkLocation.x + this.trunkWidth / 2;
+        for(let count = 0; count < 5; count += 1) {
+            triangle(
+                this.middleOfTrunk, // x1
+                this.trunkLocation.y - this.branchesSize + count * 20, // y1
+                this.middleOfTrunk - this.branchesSize,  // x2
+                this.trunkLocation.y + this.branchesSize + count * 20, // y2
+                this.middleOfTrunk + this.branchesSize, // x3
+                this.trunkLocation.y + this.branchesSize + count * 20 // y3
+            );
+        }
     }
 
-    update() {}
+    update(velocity) {
+        this.trunkLocation.add(velocity);
+    }
 
     isOffScreen() {}
 
