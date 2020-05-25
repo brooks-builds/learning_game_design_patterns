@@ -26,3 +26,7 @@
 * [x] Create button to rebind keys
 * [x] Allow rebinding of jump key
 * [x] Allow rebinding of restart game key
+
+## Suggestions
+
+* [ ] Add an obstacle hanging off the tree like a squirrel

@@ -7,6 +7,8 @@ mod obstacle;
 mod player;
 mod reset_game_command;
 mod score;
+mod tree;
+mod tree_model;
 
 use button::Button;
 use command_trait::ActorCommand;
@@ -14,7 +16,6 @@ use command_trait::GameCommand;
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
-use ggez::input::keyboard;
 use ggez::input::keyboard::{KeyCode, KeyMods};
 use ggez::input::mouse;
 use ggez::nalgebra::{Point2, Vector2};
@@ -23,8 +24,11 @@ use input_handler::InputHandler;
 use jump_command::JumpCommand;
 use obstacle::Obstacle;
 use player::Player;
+use rand::prelude::*;
 use reset_game_command::ResetGameCommand;
 use score::Score;
+use tree::Tree;
+use tree_model::TreeModel;
 
 pub struct MyGame {
     player: Player,
@@ -40,11 +44,16 @@ pub struct MyGame {
     input_handler: InputHandler,
     rebind_jump_button: Button,
     rebind_reset_game_button: Button,
+    tree_model: TreeModel,
+    trees: Vec<Tree>,
+    rng: ThreadRng,
+    create_tree_at: u64,
 }
 
 impl MyGame {
     pub fn new(context: &mut Context) -> GameResult<MyGame> {
         // Load/create resources such as images here.
+        let mut rng = rand::thread_rng();
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let player = Player::new(350.0, 50.0);
         let player_mesh = player.create_mesh(context)?;
@@ -70,6 +79,9 @@ impl MyGame {
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
+        let tree_model = TreeModel::new(context)?;
+        let trees = vec![];
+        let create_tree_at = 0;
 
         Ok(MyGame {
             player,
@@ -85,6 +97,10 @@ impl MyGame {
             input_handler,
             rebind_jump_button,
             rebind_reset_game_button,
+            tree_model,
+            trees,
+            rng,
+            create_tree_at,
         })
     }
 
@@ -207,6 +223,50 @@ impl MyGame {
 
         Ok(())
     }
+
+    fn draw_trees(&mut self, context: &mut Context) -> GameResult<()> {
+        for tree in &self.trees {
+            tree.draw(context, &self.tree_model, &mut self.rng)?
+        }
+
+        Ok(())
+    }
+
+    fn update_trees(&mut self) {
+        for tree in &mut self.trees {
+            tree.update(&self.tree_model);
+        }
+    }
+
+    fn create_tree(&mut self, context: &mut Context) -> GameResult<()> {
+        let current_time = timer::time_since_start(context).as_secs();
+        if current_time < self.create_tree_at {
+            return Ok(());
+        }
+
+        let (arena_width, arena_height) = graphics::drawable_size(context);
+
+        self.trees.push(Tree::new(
+            arena_width,
+            arena_height,
+            &self.tree_model,
+            &mut self.rng,
+        ));
+
+        self.create_tree_at = current_time + self.rng.gen_range(1, 30);
+
+        Ok(())
+    }
+
+    fn destroy_trees_offscreen(&mut self) {
+        let trees: Vec<Tree> = self
+            .trees
+            .clone()
+            .into_iter()
+            .filter(|tree| !tree.is_off_screen(&self.tree_model))
+            .collect();
+        self.trees = trees;
+    }
 }
 
 impl EventHandler for MyGame {
@@ -243,6 +303,9 @@ impl EventHandler for MyGame {
                 {
                     self.game_state = GameState::GameOver;
                 }
+                self.update_trees();
+                self.create_tree(context)?;
+                self.destroy_trees_offscreen();
             }
             GameState::GameOver => {
                 if let Some(command) = &mut self.input_handler.handle_game_input(context) {
@@ -284,6 +347,7 @@ impl EventHandler for MyGame {
 
         match self.game_state {
             GameState::Playing => {
+                self.draw_trees(context)?;
                 graphics::draw(
                     context,
                     &self.player_mesh,
