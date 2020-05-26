@@ -13,7 +13,6 @@ function setup() {
 
 function draw() {
     if (inputHandler.isRebinding == false) {
-        console.log('am i rulnning!');
         const commands = inputHandler.handleInput(gameRunning);
         commands.forEach(command => command(player));
     }

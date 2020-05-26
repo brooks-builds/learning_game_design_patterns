@@ -51,7 +51,7 @@ impl Tree {
                 DrawParam::default()
                     .dest(Point2::new(
                         self.location.x,
-                        self.location.y + 25.0 * tree_count as f32,
+                        self.location.y + 50.0 * tree_count as f32,
                     ))
                     .color(self.branch_color),
             )?;

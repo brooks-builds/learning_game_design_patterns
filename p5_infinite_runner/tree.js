@@ -34,7 +34,9 @@ class Tree {
         this.trunkLocation.add(velocity);
     }
 
-    isOffScreen() {}
+    isOffScreen() {
+        return this.trunkLocation.x + this.trunkWidth + this.branchesSize < 0;
+    }
 
     reset() {}
 }

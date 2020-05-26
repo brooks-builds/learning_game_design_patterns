@@ -18,7 +18,7 @@ impl Player {
     pub fn new(x: f32, y: f32) -> Player {
         let acceleration = Vector2::new(0.0, 0.0);
         let velocity = Vector2::new(0.0, 0.0);
-        let jump_force = Vector2::new(0.0, -2.3);
+        let jump_force = Vector2::new(0.0, -9.0);
         let is_jumping = false;
         let location = Vector2::new(x, y);
         let starting_location = location;

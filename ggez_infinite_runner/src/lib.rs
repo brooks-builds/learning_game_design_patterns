@@ -57,7 +57,7 @@ impl MyGame {
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let player = Player::new(350.0, 50.0);
         let player_mesh = player.create_mesh(context)?;
-        let gravity = Vector2::new(0.0, 0.05);
+        let gravity = Vector2::new(0.0, 0.5);
         let obstacle_size = 25.0;
         let obstacle_1 = Obstacle::new(
             arena_width + obstacle_size,
