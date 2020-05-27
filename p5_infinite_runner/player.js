@@ -1,10 +1,13 @@
 class Player {
-    constructor(location) {
+    constructor(location, jumpOverObstacleEvent) {
         this.initialLocation = location.copy();
         this.reset();
         this.width = 5;
         this.height = 20;
         this.jumpForce = createVector(0, -10);
+        this.jumpOverObstacleEvent = jumpOverObstacleEvent
+
+        this.jumpOverObstacleEvent.addObserver(this)
     }
 
     render() {
@@ -54,5 +57,11 @@ class Player {
         this.velocity = createVector(0, 0);
         this.acceleration = createVector(0, 0);
         this.isJumping = true;
+    }
+
+    onNotify(entity, event) {
+        if (event == EVENT_JUMPED_OVER_OBSTACLE) {
+            entity.incrementScore();
+        }
     }
 }

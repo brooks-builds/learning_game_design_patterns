@@ -2,7 +2,10 @@
 
 ## Observer Pattern
 
-* [ ] refactor UI to use the observer pattern
+What events are in the game?
 
-    * [ ] class for UI
-    * [ ] UI listens for events to update score
+* [x] Jumping over an obstacle
+* [ ] Game State
+* [ ] collided with an obstacle
+* [ ] Started rebinding
+* [ ] Finished rebinding

@@ -1,10 +1,11 @@
 class Obstacle {
-    constructor(location) {
+    constructor(location, playerJumpedOverObstacleEvent) {
         this.initialLocation = location.copy();
         this.initialize();
         this.width = 15;
         this.height = 15;
         this.increaseSpeedBy = 0.1;
+        this.playerJumpedOverObstacleEvent = playerJumpedOverObstacleEvent;
     }
 
     render() {
@@ -20,18 +21,30 @@ class Obstacle {
     }
 
     update(velocity, player) {
+        const isToRightOfPlayer = this.isRightOfPlayer(player);
         this.location.add(velocity);
-        this.reset(player);
+
+        if (isToRightOfPlayer && this.isLeftOfPlayer(player)) {
+            this.playerJumpedOverObstacleEvent.notify(player, EVENT_JUMPED_OVER_OBSTACLE);
+        }
+        this.reset();
     }
 
-    reset(player) {
+    reset() {
         if (this.location.x + this.width < 0) {
             this.location.x = width + 5;
-            player.incrementScore();
         }
     }
 
     initialize() {
         this.location = this.initialLocation.copy();
+    }
+
+    isRightOfPlayer(player) {
+        return this.location.x > player.location.x + player.width / 2;
+    }
+
+    isLeftOfPlayer(player) {
+        return this.location.x < player.location.x + player.width / 2;
     }
 }

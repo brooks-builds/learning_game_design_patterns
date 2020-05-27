@@ -1,10 +1,10 @@
 function setup() {
     createCanvas(770, 700);
-    player = new Player(createVector(50, 25));
+    player = new Player(createVector(50, 25), jumpOverObstacleEvent);
     gravity = createVector(0, 1);
     obstacles.push(
-        new Obstacle(createVector(800, 680)),
-        new Obstacle(createVector(1200, 680))
+        new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
+        new Obstacle(createVector(1200, 680), jumpOverObstacleEvent)
     );
     initializeGameSpeed();
     gameRunning = true;
@@ -16,7 +16,7 @@ function draw() {
         const commands = inputHandler.handleInput(gameRunning);
         commands.forEach(command => command(player));
     }
-    
+
     if (gameRunning && inputHandler.isRebinding == false) {
         clear();
         world.run();
@@ -93,3 +93,4 @@ let runSpeed;
 let gameRunning;
 let inputHandler = new InputHandler(generateCommands());
 let world;
+let jumpOverObstacleEvent = new EventSystem();
