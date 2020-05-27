@@ -5,7 +5,9 @@
 What events are in the game?
 
 * [x] Jumping over an obstacle
-* [ ] Game State
+* [x] Game State
+* [ ] Move things into game state that make sense
+
 * [ ] collided with an obstacle
 * [ ] Started rebinding
 * [ ] Finished rebinding

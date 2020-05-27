@@ -1,42 +1,33 @@
 function setup() {
     createCanvas(770, 700);
-    player = new Player(createVector(50, 25), jumpOverObstacleEvent);
-    gravity = createVector(0, 1);
-    obstacles.push(
-        new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
-        new Obstacle(createVector(1200, 680), jumpOverObstacleEvent)
-    );
-    initializeGameSpeed();
-    gameRunning = true;
-    world = new World();
+    gameState = new GameState();
 }
 
 function draw() {
     if (inputHandler.isRebinding == false) {
-        const commands = inputHandler.handleInput(gameRunning);
-        commands.forEach(command => command(player));
+        const commands = inputHandler.handleInput(gameState.running);
+        commands.forEach(command => command(gameState.getPlayer));
     }
 
-    if (gameRunning && inputHandler.isRebinding == false) {
+    if (gameState.running && inputHandler.isRebinding == false) {
         clear();
-        world.run();
+        gameState.getWorld.run();
         alpha(255);
         fill(0);
         rect(0, height - 5, width, 5);
-        player.render();
-
-        player.update();
-        player.applyForce(gravity);
-        player.hitGround(height - 5);
-        obstacles.forEach(obstacle => {
+        gameState.getPlayer.render();
+        gameState.getPlayer.update();
+        gameState.getPlayer.applyForce(gameState.getGravity);
+        gameState.getPlayer.hitGround(height - 5);
+        gameState.getObstacles.forEach(obstacle => {
             obstacle.render();
-            obstacle.update(runSpeed, player);
-            if (player.isHitting(obstacle)) {
-                gameRunning = false;
+            obstacle.update(gameState.getRunSpeed, gameState.getPlayer);
+            if (gameState.getPlayer.isHitting(obstacle)) {
+                gameState.running = false;
             }
         });
-        runSpeed.x -= 0.01;
-    } else if (gameRunning == false) {
+        gameState.setRunSpeed = gameState.getRunSpeed.x - 0.1;
+    } else if (gameState.running == false) {
         textSize(30);
         const gameOverText = 'Game Over';
 
@@ -53,17 +44,9 @@ function draw() {
         );
     }
     textSize(18);
-    text(`Score: ${player.score}`, 5, 20);
+    text(`Score: ${gameState.getPlayer.score}`, 5, 20);
     text(`Space bound to: ${inputHandler.keyBinds.jump.keyCode}`, 5, 40);
     text(`Restart Game bound to: ${inputHandler.keyBinds.restartGame.keyCode}`, 5, 60);
-}
-
-function createTree() {
-
-}
-
-function initializeGameSpeed() {
-    runSpeed = createVector(-5, 0);
 }
 
 function keyPressed() {
@@ -78,19 +61,13 @@ function generateCommands() {
             actor.jump();
         },
         restartGame: function () {
-            gameRunning = true;
-            player.reset();
-            obstacles.forEach(obstacle => obstacle.initialize());
-            initializeGameSpeed();
+            gameState.running = true;
+            gameState.getPlayer.reset();
+            gameState.getObstacles.forEach(obstacle => obstacle.initialize());
+            gameState.initializeGameSpeed();
         }
     };
 }
 
-let player;
-let gravity;
-let obstacles = [];
-let runSpeed;
-let gameRunning;
 let inputHandler = new InputHandler(generateCommands());
-let world;
-let jumpOverObstacleEvent = new EventSystem();
+let gameState;
