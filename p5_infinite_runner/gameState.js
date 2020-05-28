@@ -1,7 +1,9 @@
 class GameState {
     constructor() {
         const jumpOverObstacleEvent = new EventSystem();
-        this.player = new Player(createVector(50, 25), jumpOverObstacleEvent);
+        const collidedEvent = new EventSystem();
+
+        this.player = new Player(createVector(50, 25), jumpOverObstacleEvent, collidedEvent);
         this.obstacles = [];
         this.obstacles.push(
             new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
@@ -11,10 +13,18 @@ class GameState {
         this.isRunning = true;
         this.world = new World();
         this.initializeGameSpeed();
+
+        collidedEvent.addObserver(this);
     }
 
     initializeGameSpeed() {
         this.runSpeed = createVector(-5, 0);
+    }
+
+    onNotify(entity, event) {
+        if (event == COLLIDE_WITH_OBSTACLE) {
+            this.running = false;
+        }
     }
 
     get running() {

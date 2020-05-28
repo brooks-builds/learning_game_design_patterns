@@ -22,9 +22,7 @@ function draw() {
         gameState.getObstacles.forEach(obstacle => {
             obstacle.render();
             obstacle.update(gameState.getRunSpeed, gameState.getPlayer);
-            if (gameState.getPlayer.isHitting(obstacle)) {
-                gameState.running = false;
-            }
+            gameState.getPlayer.checkIfHitting(obstacle);
         });
         gameState.setRunSpeed = gameState.getRunSpeed.x - 0.1;
     } else if (gameState.running == false) {

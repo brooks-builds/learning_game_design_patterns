@@ -13,10 +13,9 @@ class World {
     run() {
         this.drawTrees();
         this.removeTreesOffScreen();
-        console.log(this.trees.length);
         this.trees.forEach(tree => tree.update(this.treeVelocity));
 
-        if(random() < this.chanceToCreateTree) this.createTree();
+        if (random() < this.chanceToCreateTree) this.createTree();
     }
 
     createTree() {
@@ -31,10 +30,10 @@ class World {
     }
 
     removeTreesOffScreen() {
-        for(let treeIndex = this.trees.length - 1; treeIndex >=0; treeIndex -= 1) {
+        for (let treeIndex = this.trees.length - 1; treeIndex >= 0; treeIndex -= 1) {
             const tree = this.trees[treeIndex];
 
-            if(tree.isOffScreen()) this.trees.splice(treeIndex, 1);
+            if (tree.isOffScreen()) this.trees.splice(treeIndex, 1);
         }
     }
 }

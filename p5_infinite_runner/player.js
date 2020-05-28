@@ -1,13 +1,14 @@
 class Player {
-    constructor(location, jumpOverObstacleEvent) {
+    constructor(location, jumpOverObstacleEvent, collidedEvent) {
         this.initialLocation = location.copy();
         this.reset();
         this.width = 5;
         this.height = 20;
         this.jumpForce = createVector(0, -10);
         this.jumpOverObstacleEvent = jumpOverObstacleEvent
+        this.collidedEvent = collidedEvent;
 
-        this.jumpOverObstacleEvent.addObserver(this)
+        this.jumpOverObstacleEvent.addObserver(this);
     }
 
     render() {
@@ -40,11 +41,13 @@ class Player {
         this.acceleration.mult(0);
     }
 
-    isHitting(obstacle) {
-        return this.location.x < obstacle.location.x + obstacle.width &&
+    checkIfHitting(obstacle) {
+        if (this.location.x < obstacle.location.x + obstacle.width &&
             this.location.x + this.width > obstacle.location.x &&
             this.location.y < obstacle.location.y + obstacle.height &&
-            this.location.y + this.height > obstacle.location.y;
+            this.location.y + this.height > obstacle.location.y) {
+            this.collidedEvent.notify(this, COLLIDE_WITH_OBSTACLE);
+        }
     }
 
     incrementScore() {
