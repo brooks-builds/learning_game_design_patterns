@@ -6,12 +6,18 @@ use score::Score;
 use std::sync::{Arc, Mutex};
 
 pub trait Subject {
-    fn add_observer(&mut self, score: Arc<Mutex<Score>>);
+    fn add_observer(&mut self, observer: Observers);
     fn notify(&self, event: &'static str);
 }
 
 pub trait Observer {
     fn on_notify(&mut self, event: &'static str);
+}
+
+#[derive(Clone)]
+pub enum Observers {
+    Score(Arc<Mutex<Score>>),
+    GameState(Arc<Mutex<GameState>>),
 }
 
 pub struct GameState {
@@ -24,7 +30,9 @@ impl GameState {
         let wrapped_score = Arc::new(Mutex::new(Score::new()));
         let mut player = Player::new();
 
-        player.add_observer(wrapped_score.clone());
+        let observer = Observers::Score(wrapped_score.clone());
+
+        player.add_observer(observer);
 
         GameState {
             wrapped_score,
