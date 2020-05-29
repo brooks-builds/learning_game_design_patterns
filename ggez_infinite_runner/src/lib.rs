@@ -1,5 +1,6 @@
 mod button;
 mod command_trait;
+mod event_system;
 mod game_state;
 mod input_handler;
 mod jump_command;
@@ -13,6 +14,7 @@ mod tree_model;
 use button::Button;
 use command_trait::ActorCommand;
 use command_trait::GameCommand;
+use event_system::{EventSystem, Events};
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
@@ -48,11 +50,13 @@ pub struct MyGame {
     trees: Vec<Tree>,
     rng: ThreadRng,
     create_tree_at: u64,
+    jumped_over_obstacle_event: EventSystem,
 }
 
 impl MyGame {
     pub fn new(context: &mut Context) -> GameResult<MyGame> {
         // Load/create resources such as images here.
+        let jumped_over_obstacle_event = EventSystem::new();
         let mut rng = rand::thread_rng();
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let player = Player::new(350.0, 50.0);
@@ -75,7 +79,7 @@ impl MyGame {
         let increase_speed_every_seconds = 5;
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let game_state = GameState::Playing;
-        let score = Score::new();
+        let score = Score::new(&jumped_over_obstacle_event);
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
@@ -101,6 +105,7 @@ impl MyGame {
             trees,
             rng,
             create_tree_at,
+            jumped_over_obstacle_event,
         })
     }
 
@@ -281,15 +286,15 @@ impl EventHandler for MyGame {
                 if let Some(jump_command) = self.input_handler.handle_player_input(context) {
                     jump_command.execute(&mut self.player);
                 }
-                self.obstacle_1.run();
+                self.obstacle_1
+                    .run(&self.player, &self.jumped_over_obstacle_event);
                 if self.obstacle_1.is_offscreen(arena_width) {
                     self.obstacle_1.reset_location();
-                    self.score.increment();
                 }
-                self.obstacle_2.run();
+                self.obstacle_2
+                    .run(&self.player, &self.jumped_over_obstacle_event);
                 if self.obstacle_2.is_offscreen(arena_width) {
                     self.obstacle_2.reset_location();
-                    self.score.increment();
                 }
                 let time_since_start = timer::time_since_start(context).as_secs();
                 if time_since_start >= self.time_since_start_to_increase_speed {

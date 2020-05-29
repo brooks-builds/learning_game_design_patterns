@@ -87,4 +87,11 @@ impl Player {
             && self.location.y < obstacle_location.y + obstacle_height
             && self.location.y + self.height > obstacle_location.y
     }
+
+    pub fn get_location_center(&self) -> Point2<f32> {
+        Point2::new(
+            self.location.x + self.width / 2.0,
+            self.location.y + self.height / 2.0,
+        )
+    }
 }
