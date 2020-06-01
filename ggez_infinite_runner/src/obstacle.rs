@@ -1,4 +1,4 @@
-use super::Player;
+use super::{Event, Observer, Player, PossibleObserver, Subject};
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
@@ -11,6 +11,7 @@ pub struct Obstacle {
     width: f32,
     height: f32,
     speed_increase_rate: f32,
+    observers: Vec<PossibleObserver>,
 }
 
 impl Obstacle {
@@ -22,6 +23,7 @@ impl Obstacle {
         let width = size;
         let height = size;
         let speed_increase_rate = -0.1;
+        let observers = vec![];
 
         Obstacle {
             location,
@@ -31,6 +33,7 @@ impl Obstacle {
             width,
             height,
             speed_increase_rate,
+            observers,
         }
     }
 
@@ -54,14 +57,17 @@ impl Obstacle {
     }
 
     pub fn run(&mut self, player: &Player) {
-        let player_location_x_before = player.get_location_center().x;
+        let location_x_before = self.location.x;
+        let player_location_center = player.get_location_center();
 
         self.location += self.velocity;
 
-        if player_location_x_before < self.location.x
-            && player.get_location_center().x > self.location.x
+        if location_x_before > player_location_center.x
+            && self.location.x < player_location_center.x
         {
             // player jumped over obstacle
+            println!("player jumped over me");
+            self.notify(Event::PlayerJumpedOverObstacle);
         }
     }
 
@@ -79,5 +85,19 @@ impl Obstacle {
 
     pub fn get_size(&self) -> (f32, f32) {
         (self.width, self.height)
+    }
+}
+
+impl Subject for Obstacle {
+    fn add_observer(&mut self, observer: PossibleObserver) {
+        self.observers.push(observer)
+    }
+
+    fn notify(&mut self, event: Event) {
+        for possible_observer in self.observers.clone() {
+            if let PossibleObserver::Score(observer) = possible_observer {
+                observer.lock().unwrap().on_notify(&event);
+            }
+        }
     }
 }

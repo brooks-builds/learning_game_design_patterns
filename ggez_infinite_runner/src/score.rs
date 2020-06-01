@@ -1,3 +1,5 @@
+use super::{Event, Observer};
+
 pub struct Score(u64);
 
 impl Score {
@@ -7,7 +9,7 @@ impl Score {
         score
     }
 
-    pub fn _increment(&mut self) {
+    pub fn increment(&mut self) {
         self.0 += 1;
     }
 
@@ -17,5 +19,13 @@ impl Score {
 
     pub fn reset(&mut self) {
         self.0 = 0;
+    }
+}
+
+impl Observer for Score {
+    fn on_notify(&mut self, event: &Event) {
+        if let Event::PlayerJumpedOverObstacle = event {
+            self.increment();
+        }
     }
 }

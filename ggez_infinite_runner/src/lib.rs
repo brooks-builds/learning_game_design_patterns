@@ -1,5 +1,6 @@
 mod button;
 mod command_trait;
+mod events;
 mod game_state;
 mod input_handler;
 mod jump_command;
@@ -13,6 +14,7 @@ mod tree_model;
 use button::Button;
 use command_trait::ActorCommand;
 use command_trait::GameCommand;
+use events::{Event, Observer, PossibleObserver, Subject, WrappedScore};
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
@@ -27,6 +29,7 @@ use player::Player;
 use rand::prelude::*;
 use reset_game_command::ResetGameCommand;
 use score::Score;
+use std::sync::{Arc, Mutex};
 use tree::Tree;
 use tree_model::TreeModel;
 
@@ -40,7 +43,7 @@ pub struct MyGame {
     increase_speed_every_seconds: u64,
     time_since_start_to_increase_speed: u64,
     game_state: GameState,
-    score: Score,
+    wrapped_score: WrappedScore,
     input_handler: InputHandler,
     rebind_jump_button: Button,
     rebind_reset_game_button: Button,
@@ -59,13 +62,13 @@ impl MyGame {
         let player_mesh = player.create_mesh(context)?;
         let gravity = Vector2::new(0.0, 0.5);
         let obstacle_size = 25.0;
-        let obstacle_1 = Obstacle::new(
+        let mut obstacle_1 = Obstacle::new(
             arena_width + obstacle_size,
             arena_height - obstacle_size,
             obstacle_size,
             arena_width,
         );
-        let obstacle_2 = Obstacle::new(
+        let mut obstacle_2 = Obstacle::new(
             arena_width + (arena_width / 2.0),
             arena_height - obstacle_size,
             obstacle_size,
@@ -75,13 +78,17 @@ impl MyGame {
         let increase_speed_every_seconds = 5;
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let game_state = GameState::Playing;
-        let score = Score::new();
+        let wrapped_score = Arc::new(Mutex::new(Score::new()));
+        let score_observer = PossibleObserver::Score(wrapped_score.clone());
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
         let tree_model = TreeModel::new(context)?;
         let trees = vec![];
         let create_tree_at = 0;
+
+        obstacle_1.add_observer(score_observer.clone());
+        obstacle_2.add_observer(score_observer);
 
         Ok(MyGame {
             player,
@@ -93,7 +100,7 @@ impl MyGame {
             increase_speed_every_seconds,
             time_since_start_to_increase_speed,
             game_state,
-            score,
+            wrapped_score,
             input_handler,
             rebind_jump_button,
             rebind_reset_game_button,
@@ -106,7 +113,17 @@ impl MyGame {
 
     fn draw_end_game_screen(&self, context: &mut Context) -> GameResult<()> {
         let mut game_over_text = Text::new("Game Over");
-        let mut score_text = Text::new(format!("You jumped over {} obstacles", self.score.get()));
+        let mut score_text;
+
+        {
+            let wrapped_score = self.wrapped_score.clone();
+
+            score_text = Text::new(format!(
+                "You jumped over {} obstacles",
+                wrapped_score.lock().unwrap().get()
+            ));
+        }
+
         let mut restart_text = Text::new(format!(
             "Restart game by pressing {}",
             self.input_handler.get_reset_game_keycode()
@@ -152,7 +169,11 @@ impl MyGame {
     }
 
     fn draw_score(&self, context: &mut Context) -> GameResult<()> {
-        let mut score_text = Text::new(format!("Score: {}", self.score.get()));
+        let mut score_text;
+        {
+            let wrapped_score = self.wrapped_score.clone();
+            score_text = Text::new(format!("Score: {}", wrapped_score.lock().unwrap().get()));
+        }
         score_text.set_font(Font::default(), Scale::uniform(25.0));
 
         graphics::draw(
@@ -309,7 +330,7 @@ impl EventHandler for MyGame {
                 if let Some(command) = &mut self.input_handler.handle_game_input(context) {
                     command.execute(
                         &mut self.player,
-                        &mut self.score,
+                        self.wrapped_score.clone(),
                         &mut self.obstacle_1,
                         &mut self.obstacle_2,
                         &mut self.game_state,
