@@ -36,7 +36,7 @@ impl Tree {
         &self,
         context: &mut Context,
         tree_model: &TreeModel,
-        rng: &mut ThreadRng,
+        _rng: &mut ThreadRng,
     ) -> GameResult<()> {
         graphics::draw(
             context,

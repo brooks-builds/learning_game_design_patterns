@@ -1,4 +1,4 @@
-use super::{EventSystem, Events, Player};
+use super::Player;
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
@@ -53,7 +53,7 @@ impl Obstacle {
         self.location = self.starting_location;
     }
 
-    pub fn run(&mut self, player: &Player, player_jumped_over_event_system: &EventSystem) {
+    pub fn run(&mut self, player: &Player) {
         let player_location_x_before = player.get_location_center().x;
 
         self.location += self.velocity;
@@ -61,7 +61,7 @@ impl Obstacle {
         if player_location_x_before < self.location.x
             && player.get_location_center().x > self.location.x
         {
-            player_jumped_over_event_system.notify(Events::JUMPED_OVER_OBSTACLE);
+            // player jumped over obstacle
         }
     }
 
@@ -69,7 +69,7 @@ impl Obstacle {
         self.location = self.location_to_reset_to;
     }
 
-    pub fn is_offscreen(&self, arena_width: f32) -> bool {
+    pub fn is_offscreen(&self) -> bool {
         self.location.x + self.width < 0.0
     }
 

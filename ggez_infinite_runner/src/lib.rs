@@ -1,6 +1,5 @@
 mod button;
 mod command_trait;
-mod event_system;
 mod game_state;
 mod input_handler;
 mod jump_command;
@@ -14,7 +13,6 @@ mod tree_model;
 use button::Button;
 use command_trait::ActorCommand;
 use command_trait::GameCommand;
-use event_system::{EventSystem, Events};
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
@@ -50,14 +48,12 @@ pub struct MyGame {
     trees: Vec<Tree>,
     rng: ThreadRng,
     create_tree_at: u64,
-    jumped_over_obstacle_event: EventSystem,
 }
 
 impl MyGame {
     pub fn new(context: &mut Context) -> GameResult<MyGame> {
         // Load/create resources such as images here.
-        let jumped_over_obstacle_event = EventSystem::new();
-        let mut rng = rand::thread_rng();
+        let rng = rand::thread_rng();
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let player = Player::new(350.0, 50.0);
         let player_mesh = player.create_mesh(context)?;
@@ -79,7 +75,7 @@ impl MyGame {
         let increase_speed_every_seconds = 5;
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let game_state = GameState::Playing;
-        let score = Score::new(&jumped_over_obstacle_event);
+        let score = Score::new();
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
@@ -105,7 +101,6 @@ impl MyGame {
             trees,
             rng,
             create_tree_at,
-            jumped_over_obstacle_event,
         })
     }
 
@@ -124,7 +119,7 @@ impl MyGame {
 
         let (game_over_width, _game_over_height) = game_over_text.dimensions(context);
         let (score_width, score_height) = score_text.dimensions(context);
-        let (restart_width, restart_height) = restart_text.dimensions(context);
+        let (restart_width, _restart_height) = restart_text.dimensions(context);
 
         graphics::draw(
             context,
@@ -180,7 +175,7 @@ impl MyGame {
     }
 
     fn draw_help_screen(&self, context: &mut Context) -> GameResult<()> {
-        let (arena_width, arena_height) = graphics::drawable_size(context);
+        let (arena_width, _arena_height) = graphics::drawable_size(context);
         let mut title = Text::new("Commands");
         let mut jump = Text::new(format!("Jump - {}", self.input_handler.get_jump_keycode()));
         let mut restart = Text::new(format!(
@@ -192,9 +187,9 @@ impl MyGame {
         jump.set_font(Font::default(), Scale::uniform(50.0));
         restart.set_font(Font::default(), Scale::uniform(50.0));
 
-        let (title_width, title_height) = title.dimensions(context);
-        let (jump_width, jump_height) = jump.dimensions(context);
-        let (restart_width, restart_height) = restart.dimensions(context);
+        let (title_width, _title_height) = title.dimensions(context);
+        let (jump_width, _jump_height) = jump.dimensions(context);
+        let (restart_width, _restart_height) = restart.dimensions(context);
 
         graphics::draw(
             context,
@@ -279,21 +274,19 @@ impl EventHandler for MyGame {
         // Update code here...
         match self.game_state {
             GameState::Playing => {
-                let (arena_width, arena_height) = graphics::drawable_size(context);
+                let (_arena_width, arena_height) = graphics::drawable_size(context);
                 self.player.apply_force(&self.gravity);
                 self.player.run();
                 self.player.hit_ground(arena_height);
                 if let Some(jump_command) = self.input_handler.handle_player_input(context) {
                     jump_command.execute(&mut self.player);
                 }
-                self.obstacle_1
-                    .run(&self.player, &self.jumped_over_obstacle_event);
-                if self.obstacle_1.is_offscreen(arena_width) {
+                self.obstacle_1.run(&self.player);
+                if self.obstacle_1.is_offscreen() {
                     self.obstacle_1.reset_location();
                 }
-                self.obstacle_2
-                    .run(&self.player, &self.jumped_over_obstacle_event);
-                if self.obstacle_2.is_offscreen(arena_width) {
+                self.obstacle_2.run(&self.player);
+                if self.obstacle_2.is_offscreen() {
                     self.obstacle_2.reset_location();
                 }
                 let time_since_start = timer::time_since_start(context).as_secs();
@@ -379,7 +372,7 @@ impl EventHandler for MyGame {
 
     fn key_down_event(
         &mut self,
-        context: &mut Context,
+        _context: &mut Context,
         keycode: KeyCode,
         _keymods: KeyMods,
         _repeat: bool,
