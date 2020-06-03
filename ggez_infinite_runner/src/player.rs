@@ -1,4 +1,4 @@
-use super::obstacle::Obstacle;
+use super::{Event, Observer, Obstacle, PossibleObserver, Subject};
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, Rect, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
@@ -12,6 +12,7 @@ pub struct Player {
     velocity: Vector2<f32>,
     jump_force: Vector2<f32>,
     is_jumping: bool,
+    observers: Vec<PossibleObserver>,
 }
 
 impl Player {
@@ -32,6 +33,7 @@ impl Player {
             velocity,
             jump_force,
             is_jumping,
+            observers: vec![],
         }
     }
 
@@ -78,14 +80,17 @@ impl Player {
         }
     }
 
-    pub fn is_running_into_obstacle(&self, obstacle: &Obstacle) -> bool {
+    pub fn handle_running_into_obstacle(&mut self, obstacle: &Obstacle) {
         let obstacle_location = obstacle.get_location();
         let (obstacle_width, obstacle_height) = obstacle.get_size();
 
-        self.location.x < obstacle_location.x + obstacle_width
+        if self.location.x < obstacle_location.x + obstacle_width
             && self.location.x + self.width > obstacle_location.x
             && self.location.y < obstacle_location.y + obstacle_height
             && self.location.y + self.height > obstacle_location.y
+        {
+            self.notify(Event::PlayerRanIntoObstacle);
+        }
     }
 
     pub fn get_location_center(&self) -> Point2<f32> {
@@ -93,5 +98,19 @@ impl Player {
             self.location.x + self.width / 2.0,
             self.location.y + self.height / 2.0,
         )
+    }
+}
+
+impl Subject for Player {
+    fn add_observer(&mut self, observer: PossibleObserver) {
+        self.observers.push(observer);
+    }
+
+    fn notify(&mut self, event: Event) {
+        for observer in self.observers.clone() {
+            if let PossibleObserver::GameState(wrapped_game_state) = observer {
+                wrapped_game_state.lock().unwrap().on_notify(&event);
+            }
+        }
     }
 }

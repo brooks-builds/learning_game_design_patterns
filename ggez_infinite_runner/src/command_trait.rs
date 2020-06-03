@@ -1,6 +1,6 @@
 use super::player::Player;
-use super::GameState;
 use super::Obstacle;
+use super::WrappedGameState;
 use super::WrappedScore;
 
 pub trait ActorCommand {
@@ -14,6 +14,6 @@ pub trait GameCommand {
         wrapped_score: WrappedScore,
         obstacle_1: &mut Obstacle,
         obstacle_2: &mut Obstacle,
-        game_state: &mut GameState,
+        wrapped_game_state: WrappedGameState,
     );
 }

@@ -66,7 +66,6 @@ impl Obstacle {
             && self.location.x < player_location_center.x
         {
             // player jumped over obstacle
-            println!("player jumped over me");
             self.notify(Event::PlayerJumpedOverObstacle);
         }
     }

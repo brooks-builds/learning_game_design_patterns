@@ -1,7 +1,7 @@
 use super::command_trait::GameCommand;
-use super::GameState;
 use super::Obstacle;
 use super::Player;
+use super::WrappedGameState;
 use super::WrappedScore;
 
 pub struct ResetGameCommand {}
@@ -19,12 +19,12 @@ impl GameCommand for ResetGameCommand {
         wrapped_score: WrappedScore,
         obstacle_1: &mut Obstacle,
         obstacle_2: &mut Obstacle,
-        game_state: &mut GameState,
+        wrapped_game_state: WrappedGameState,
     ) {
         player.reset_location();
         wrapped_score.lock().unwrap().reset();
         obstacle_1.reset_to_start();
         obstacle_2.reset_to_start();
-        game_state.playing();
+        wrapped_game_state.lock().unwrap().playing();
     }
 }

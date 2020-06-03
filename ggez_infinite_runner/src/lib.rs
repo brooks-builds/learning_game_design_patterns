@@ -14,7 +14,7 @@ mod tree_model;
 use button::Button;
 use command_trait::ActorCommand;
 use command_trait::GameCommand;
-use events::{Event, Observer, PossibleObserver, Subject, WrappedScore};
+use events::{Event, Observer, PossibleObserver, Subject, WrappedGameState, WrappedScore};
 use game_state::GameState;
 use ggez::event::EventHandler;
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
@@ -42,7 +42,7 @@ pub struct MyGame {
     obstacle_mesh: Mesh,
     increase_speed_every_seconds: u64,
     time_since_start_to_increase_speed: u64,
-    game_state: GameState,
+    wrapped_game_state: WrappedGameState,
     wrapped_score: WrappedScore,
     input_handler: InputHandler,
     rebind_jump_button: Button,
@@ -58,7 +58,7 @@ impl MyGame {
         // Load/create resources such as images here.
         let rng = rand::thread_rng();
         let (arena_width, arena_height) = graphics::drawable_size(context);
-        let player = Player::new(350.0, 50.0);
+        let mut player = Player::new(350.0, 50.0);
         let player_mesh = player.create_mesh(context)?;
         let gravity = Vector2::new(0.0, 0.5);
         let obstacle_size = 25.0;
@@ -77,18 +77,19 @@ impl MyGame {
         let obstacle_mesh = obstacle_1.create_mesh(context)?;
         let increase_speed_every_seconds = 5;
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
-        let game_state = GameState::Playing;
+        let wrapped_game_state = Arc::new(Mutex::new(GameState::Playing));
         let wrapped_score = Arc::new(Mutex::new(Score::new()));
-        let score_observer = PossibleObserver::Score(wrapped_score.clone());
         let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
         let tree_model = TreeModel::new(context)?;
         let trees = vec![];
         let create_tree_at = 0;
-
+        let score_observer = PossibleObserver::Score(wrapped_score.clone());
         obstacle_1.add_observer(score_observer.clone());
         obstacle_2.add_observer(score_observer);
+
+        player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
         Ok(MyGame {
             player,
@@ -99,7 +100,7 @@ impl MyGame {
             obstacle_mesh,
             increase_speed_every_seconds,
             time_since_start_to_increase_speed,
-            game_state,
+            wrapped_game_state,
             wrapped_score,
             input_handler,
             rebind_jump_button,
@@ -293,7 +294,13 @@ impl MyGame {
 impl EventHandler for MyGame {
     fn update(&mut self, context: &mut Context) -> GameResult<()> {
         // Update code here...
-        match self.game_state {
+        let game_state;
+
+        {
+            game_state = self.wrapped_game_state.lock().unwrap().clone();
+        }
+
+        match game_state {
             GameState::Playing => {
                 let (_arena_width, arena_height) = graphics::drawable_size(context);
                 self.player.apply_force(&self.gravity);
@@ -317,11 +324,10 @@ impl EventHandler for MyGame {
                     self.time_since_start_to_increase_speed =
                         time_since_start + self.increase_speed_every_seconds;
                 }
-                if self.player.is_running_into_obstacle(&self.obstacle_1)
-                    || self.player.is_running_into_obstacle(&self.obstacle_2)
-                {
-                    self.game_state = GameState::GameOver;
-                }
+
+                self.player.handle_running_into_obstacle(&self.obstacle_1);
+                self.player.handle_running_into_obstacle(&self.obstacle_2);
+
                 self.update_trees();
                 self.create_tree(context)?;
                 self.destroy_trees_offscreen();
@@ -333,7 +339,7 @@ impl EventHandler for MyGame {
                         self.wrapped_score.clone(),
                         &mut self.obstacle_1,
                         &mut self.obstacle_2,
-                        &mut self.game_state,
+                        self.wrapped_game_state.clone(),
                     );
                 }
             }
@@ -363,8 +369,13 @@ impl EventHandler for MyGame {
     fn draw(&mut self, context: &mut Context) -> GameResult<()> {
         graphics::clear(context, graphics::BLACK);
         // Draw code here...
+        let game_state;
 
-        match self.game_state {
+        {
+            game_state = self.wrapped_game_state.lock().unwrap().clone();
+        }
+
+        match game_state {
             GameState::Playing => {
                 self.draw_trees(context)?;
                 graphics::draw(
@@ -399,10 +410,10 @@ impl EventHandler for MyGame {
         _repeat: bool,
     ) {
         if let KeyCode::Escape = keycode {
-            match self.game_state {
-                GameState::Playing => self.game_state = GameState::Help,
-                GameState::GameOver => self.game_state = GameState::Help,
-                GameState::Help => self.game_state = GameState::Playing,
+            match *self.wrapped_game_state.lock().unwrap() {
+                GameState::Playing => *self.wrapped_game_state.lock().unwrap() = GameState::Help,
+                GameState::GameOver => *self.wrapped_game_state.lock().unwrap() = GameState::Help,
+                GameState::Help => *self.wrapped_game_state.lock().unwrap() = GameState::Playing,
             }
         } else if self.input_handler.is_rebinding() {
             self.input_handler.bind_key(keycode);
