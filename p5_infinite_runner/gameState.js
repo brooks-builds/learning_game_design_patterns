@@ -1,61 +1,65 @@
 class GameState {
-    constructor() {
-        const jumpOverObstacleEvent = new EventSystem();
-        const collidedEvent = new EventSystem();
+  constructor() {
+    const jumpOverObstacleEvent = new EventSystem();
+    const collidedEvent = new EventSystem();
 
-        this.player = new Player(createVector(50, 25), jumpOverObstacleEvent, collidedEvent);
-        this.obstacles = [];
-        this.obstacles.push(
-            new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
-            new Obstacle(createVector(1200, 680), jumpOverObstacleEvent)
-        );
-        this.gravity = createVector(0, 1);
-        this.isRunning = true;
-        this.world = new World();
-        this.initializeGameSpeed();
+    this.player = new Player(
+      createVector(50, 25),
+      jumpOverObstacleEvent,
+      collidedEvent
+    );
+    this.obstacles = [];
+    this.obstacles.push(
+      new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
+      new Obstacle(createVector(1200, 680), jumpOverObstacleEvent)
+    );
+    this.gravity = createVector(0, 1);
+    this.isRunning = true;
+    this.world = new World();
+    this.initializeGameSpeed();
 
-        collidedEvent.addObserver(this);
+    // collidedEvent.addObserver(this);
+  }
+
+  initializeGameSpeed() {
+    this.runSpeed = createVector(-5, 0);
+  }
+
+  onNotify(entity, event) {
+    if (event == COLLIDE_WITH_OBSTACLE) {
+      this.running = false;
     }
+  }
 
-    initializeGameSpeed() {
-        this.runSpeed = createVector(-5, 0);
-    }
+  get running() {
+    return this.isRunning;
+  }
 
-    onNotify(entity, event) {
-        if (event == COLLIDE_WITH_OBSTACLE) {
-            this.running = false;
-        }
-    }
+  set running(newState) {
+    this.isRunning = newState;
+  }
 
-    get running() {
-        return this.isRunning;
-    }
+  get getPlayer() {
+    return this.player;
+  }
 
-    set running(newState) {
-        this.isRunning = newState;
-    }
+  get getWorld() {
+    return this.world;
+  }
 
-    get getPlayer() {
-        return this.player;
-    }
+  get getGravity() {
+    return this.gravity;
+  }
 
-    get getWorld() {
-        return this.world;
-    }
+  get getObstacles() {
+    return this.obstacles;
+  }
 
-    get getGravity() {
-        return this.gravity;
-    }
+  get getRunSpeed() {
+    return this.runSpeed;
+  }
 
-    get getObstacles() {
-        return this.obstacles;
-    }
-
-    get getRunSpeed() {
-        return this.runSpeed;
-    }
-
-    set setRunSpeed(newRunSpeed) {
-        this.runSpeed.x = newRunSpeed;
-    }
+  set setRunSpeed(newRunSpeed) {
+    this.runSpeed.x = newRunSpeed;
+  }
 }

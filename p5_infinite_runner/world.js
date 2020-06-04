@@ -1,12 +1,6 @@
 class World {
   constructor() {
     this.trees = [];
-    this.treeVelocity = createVector(treeData.speedX, treeData.speedY);
-    this.treeTrunkColor = color(
-      treeData.trunkRed,
-      treeData.trunkGreen,
-      treeData.trunkBlue
-    );
     this.chanceToCreateTree = 0.02;
   }
 
@@ -23,22 +17,23 @@ class World {
   }
 
   createTree() {
-    // TODO - create trees based on prototype data structure
+    const treeTypes = ["tree", "tallTree"];
+    const treeData = createTreeData(random(treeTypes));
     const green = random(50, 150);
     const treeAlpha = random(1, 10);
     const treeColor = color(0, green, 0, alpha);
-    const trunkHeight = 250;
-    const trunkWidth = 20;
-    this.trees.push(
-      new Tree(
-        width + trunkWidth * treeData.branchSize,
-        height - trunkHeight,
-        trunkWidth,
-        trunkHeight,
-        treeColor,
-        treeAlpha
-      )
+    const newTree = new Tree(
+      width + treeData.trunkWidth + treeData.branchSize,
+      height - treeData.trunkHeight,
+      treeData,
+      treeColor,
+      treeAlpha
     );
+    if (treeData.type == "tree") {
+      this.trees.push(newTree);
+    } else {
+      this.trees.unshift(newTree);
+    }
   }
 
   removeTreesOffScreen() {

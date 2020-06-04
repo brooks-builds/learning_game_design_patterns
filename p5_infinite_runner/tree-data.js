@@ -1,21 +1,35 @@
-const treeData = {
+const tree = {
   speedX: -1,
   speedY: 0,
-  branchSize: 4,
-  trunkRed: 66,
-  trunkGreen: 37,
-  trunkBlue: 24,
+  branchSize: 75,
+  trunkRed: 166,
+  trunkGreen: 137,
+  trunkBlue: 124,
+  trunkHeight: 250,
+  trunkWidth: 20,
+  type: "tree",
 };
 
-// const trees = {
-//   tree: treeData,
-// };
-
 // // we can have different trees defined each with a prototype pointing towards treeData
-// const tallTree = {
-//   prototype: "tree",
-// };
+const tallTree = {
+  prototype: "tree",
+  trunkHeight: 400,
+  speedX: -0.5,
+  type: "tallTree",
+};
 
-// function createTree(tree) {
-//   return Object.assign(JSON.parse(JSON.stringify(tree)), trees[tree.prototype]);
-// }
+const treeTypes = {
+  tallTree,
+  tree,
+};
+
+function createTreeData(type) {
+  // const newTree = Object.assign({}, treeTypes[type]);
+  const treeData = Object.assign(
+    {},
+    treeTypes[treeTypes[type].prototype],
+    treeTypes[type]
+  );
+  console.log("creating tree", type, treeData);
+  return treeData;
+}
