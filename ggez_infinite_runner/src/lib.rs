@@ -26,12 +26,13 @@ use input_handler::InputHandler;
 use jump_command::JumpCommand;
 use obstacle::Obstacle;
 use player::Player;
+use rand::distributions::Uniform;
 use rand::prelude::*;
 use reset_game_command::ResetGameCommand;
 use score::Score;
 use std::sync::{Arc, Mutex};
 use tree::Tree;
-use tree_model::TreeModel;
+use tree_model::{TreeModel, TreeType};
 
 pub struct MyGame {
     player: Player,
@@ -51,6 +52,8 @@ pub struct MyGame {
     trees: Vec<Tree>,
     rng: ThreadRng,
     create_tree_at: u64,
+    trees_to_clone: Vec<Tree>,
+    trees_to_clone_distribution: Uniform<usize>,
 }
 
 impl MyGame {
@@ -91,6 +94,11 @@ impl MyGame {
 
         player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
+        let tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Normal);
+        let tall_tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Tall);
+        let trees_to_clone = vec![tree, tall_tree];
+        let trees_to_clone_distribution = Uniform::new_inclusive(0, trees_to_clone.len() - 1);
+
         Ok(MyGame {
             player,
             player_mesh,
@@ -109,6 +117,8 @@ impl MyGame {
             trees,
             rng,
             create_tree_at,
+            trees_to_clone,
+            trees_to_clone_distribution,
         })
     }
 
@@ -266,16 +276,15 @@ impl MyGame {
             return Ok(());
         }
 
-        let (arena_width, arena_height) = graphics::drawable_size(context);
+        let index = self.rng.sample(&self.trees_to_clone_distribution);
+        let tree = self.trees_to_clone[index].clone();
 
-        self.trees.push(Tree::new(
-            arena_width,
-            arena_height,
-            &self.tree_model,
-            &mut self.rng,
-        ));
+        match tree.tree_type {
+            TreeType::Normal => self.trees.insert(0, tree),
+            TreeType::Tall => self.trees.push(tree),
+        }
 
-        self.create_tree_at = current_time + self.rng.gen_range(1, 30);
+        self.create_tree_at = current_time + self.rng.gen_range(1, 15);
 
         Ok(())
     }

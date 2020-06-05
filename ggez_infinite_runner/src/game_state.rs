@@ -15,8 +15,8 @@ impl GameState {
 
 impl Observer for GameState {
     fn on_notify(&mut self, event: &Event) {
-        if let Event::PlayerRanIntoObstacle = event {
-            *self = Self::GameOver;
-        }
+        // if let Event::PlayerRanIntoObstacle = event {
+        //     *self = Self::GameOver;
+        // }
     }
 }

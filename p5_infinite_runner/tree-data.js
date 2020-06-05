@@ -30,6 +30,5 @@ function createTreeData(type) {
     treeTypes[treeTypes[type].prototype],
     treeTypes[type]
   );
-  console.log("creating tree", type, treeData);
   return treeData;
 }
