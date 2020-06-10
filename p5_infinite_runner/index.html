@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learning Game Design Patterns</title>
-</head>
+  </head>
 
-<body>
+  <body>
     <div>
-        <button onclick="inputHandler.startRebinding('jump')">rebind jump</button>
-        <button onclick="inputHandler.startRebinding('restartGame')">rebind restart game</button>
+      <button onclick="inputHandler.startRebinding('jump')">rebind jump</button>
+      <button onclick="inputHandler.startRebinding('restartGame')">
+        rebind restart game
+      </button>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"
-        integrity="sha256-w7+V9/jcjUhs0pVV3uaphYQbXkTJZkd/3CfsinPRzvM=" crossorigin="anonymous"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"
+      integrity="sha256-w7+V9/jcjUhs0pVV3uaphYQbXkTJZkd/3CfsinPRzvM="
+      crossorigin="anonymous"
+    ></script>
     <script src="globals.js"></script>
     <script src="gameState.js"></script>
+    <script src="states/jumping_state.js"></script>
+    <script src="states/standing_state.js"></script>
     <script src="player.js"></script>
     <script src="obstacle.js"></script>
     <script src="inputHandler.js"></script>
@@ -24,6 +30,5 @@
     <script src="eventSystem.js"></script>
     <script src="tree-data.js"></script>
     <script src="game.js"></script>
-</body>
-
+  </body>
 </html>

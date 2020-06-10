@@ -17,8 +17,9 @@ class GameState {
     this.isRunning = true;
     this.world = new World();
     this.initializeGameSpeed();
+    this.floorHeight = 5;
 
-    // collidedEvent.addObserver(this);
+    collidedEvent.addObserver(this);
   }
 
   initializeGameSpeed() {
@@ -57,6 +58,10 @@ class GameState {
 
   get getRunSpeed() {
     return this.runSpeed;
+  }
+
+  get getFloorHeight() {
+    return this.floorHeight;
   }
 
   set setRunSpeed(newRunSpeed) {

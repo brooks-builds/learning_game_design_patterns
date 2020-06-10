@@ -7,7 +7,6 @@ class Tree {
     this.branchColor = branchColor;
     this.branchesSize = data.branchSize;
     this.velocity = createVector(data.speedX, data.speedY);
-    console.log(this);
   }
 
   draw() {
