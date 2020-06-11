@@ -1,19 +1,18 @@
 mod button;
-mod command_trait;
+mod commands;
 mod events;
 mod game_state;
 mod input_handler;
-mod jump_command;
 mod obstacle;
 mod player;
 mod reset_game_command;
 mod score;
+mod states;
 mod tree;
 mod tree_model;
 
 use button::Button;
-use command_trait::ActorCommand;
-use command_trait::GameCommand;
+use commands::Commands;
 use events::{Event, Observer, PossibleObserver, Subject, WrappedGameState, WrappedScore};
 use game_state::GameState;
 use ggez::event::EventHandler;
@@ -23,13 +22,12 @@ use ggez::input::mouse;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, timer, Context, GameResult};
 use input_handler::InputHandler;
-use jump_command::JumpCommand;
 use obstacle::Obstacle;
 use player::Player;
 use rand::distributions::Uniform;
 use rand::prelude::*;
-use reset_game_command::ResetGameCommand;
 use score::Score;
+use states::State;
 use std::sync::{Arc, Mutex};
 use tree::Tree;
 use tree_model::{TreeModel, TreeType};
@@ -82,7 +80,7 @@ impl MyGame {
         let time_since_start_to_increase_speed = increase_speed_every_seconds;
         let wrapped_game_state = Arc::new(Mutex::new(GameState::Playing));
         let wrapped_score = Arc::new(Mutex::new(Score::new()));
-        let input_handler = InputHandler::new(JumpCommand::new(), ResetGameCommand::new());
+        let input_handler = InputHandler::new();
         let rebind_jump_button = Button::new(200.0, 200.0, "Rebind Jump", context)?;
         let rebind_reset_game_button = Button::new(200.0, 400.0, "Rebind Reset Game", context)?;
         let tree_model = TreeModel::new(context)?;
@@ -92,7 +90,7 @@ impl MyGame {
         obstacle_1.add_observer(score_observer.clone());
         obstacle_2.add_observer(score_observer);
 
-        player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
+        // player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
         let tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Normal);
         let tall_tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Tall);
@@ -313,11 +311,9 @@ impl EventHandler for MyGame {
             GameState::Playing => {
                 let (_arena_width, arena_height) = graphics::drawable_size(context);
                 self.player.apply_force(&self.gravity);
-                self.player.run();
+                let command = self.input_handler.handle_input(context);
+                self.player.run(&command);
                 self.player.hit_ground(arena_height);
-                if let Some(jump_command) = self.input_handler.handle_player_input(context) {
-                    jump_command.execute(&mut self.player);
-                }
                 self.obstacle_1.run(&self.player);
                 if self.obstacle_1.is_offscreen() {
                     self.obstacle_1.reset_location();
@@ -342,15 +338,15 @@ impl EventHandler for MyGame {
                 self.destroy_trees_offscreen();
             }
             GameState::GameOver => {
-                if let Some(command) = &mut self.input_handler.handle_game_input(context) {
-                    command.execute(
-                        &mut self.player,
-                        self.wrapped_score.clone(),
-                        &mut self.obstacle_1,
-                        &mut self.obstacle_2,
-                        self.wrapped_game_state.clone(),
-                    );
-                }
+                // if let Some(command) = &mut self.input_handler.handle_game_input(context) {
+                //     command.execute(
+                //         &mut self.player,
+                //         self.wrapped_score.clone(),
+                //         &mut self.obstacle_1,
+                //         &mut self.obstacle_2,
+                //         self.wrapped_game_state.clone(),
+                //     );
+                // }
             }
             GameState::Help => {
                 if mouse::button_pressed(context, mouse::MouseButton::Left) {

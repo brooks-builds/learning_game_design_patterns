@@ -1,9 +1,10 @@
-use super::{Event, Observer, Obstacle, PossibleObserver, Subject};
+use super::states::standing_state::StandingState;
+use super::{Commands, Event, Observer, Obstacle, PossibleObserver, State, Subject};
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, Rect, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
 
-pub struct Player {
+pub struct Player<STATE: State> {
     location: Vector2<f32>,
     starting_location: Vector2<f32>,
     height: f32,
@@ -13,10 +14,13 @@ pub struct Player {
     jump_force: Vector2<f32>,
     is_jumping: bool,
     observers: Vec<PossibleObserver>,
+    pub state: STATE,
 }
 
-impl Player {
-    pub fn new(x: f32, y: f32) -> Player {
+// trying to make state dynamically generic
+// maybe use a box - Vrixyz
+impl<STATE: State> Player<STATE<dyn State>> {
+    pub fn new(x: f32, y: f32) -> Player<STATE> {
         let acceleration = Vector2::new(0.0, 0.0);
         let velocity = Vector2::new(0.0, 0.0);
         let jump_force = Vector2::new(0.0, -9.0);
@@ -34,6 +38,7 @@ impl Player {
             jump_force,
             is_jumping,
             observers: vec![],
+            state: StandingState::new(),
         }
     }
 
@@ -58,10 +63,11 @@ impl Player {
         self.acceleration += force;
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, command: &Commands) {
         self.velocity += self.acceleration;
         self.location += self.velocity;
         self.acceleration *= 0.0;
+        self.state.handle_input(command);
     }
 
     pub fn hit_ground(&mut self, arena_height: f32) {
