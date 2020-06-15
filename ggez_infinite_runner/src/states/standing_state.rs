@@ -1,5 +1,5 @@
 use super::jumping_state::JumpingState;
-use super::{Commands, Player, State};
+use super::{Commands, State, StateData};
 
 pub struct StandingState {}
 
@@ -10,10 +10,12 @@ impl StandingState {
 }
 
 impl State for StandingState {
-    fn handle_input(&self, command: &Commands, actor: &mut Player) {
+    fn handle_input(&self, command: &Commands, state: &Box<dyn State>) -> Option<Box<dyn State>> {
         if let Commands::Jump = command {
-            actor.state = JumpingState::new();
+            return Some(Box::new(JumpingState::new()));
         }
+
+        None
     }
 
     fn update(&self) {}

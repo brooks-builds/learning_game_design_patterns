@@ -27,7 +27,7 @@ use player::Player;
 use rand::distributions::Uniform;
 use rand::prelude::*;
 use score::Score;
-use states::State;
+use states::{State, StateData};
 use std::sync::{Arc, Mutex};
 use tree::Tree;
 use tree_model::{TreeModel, TreeType};

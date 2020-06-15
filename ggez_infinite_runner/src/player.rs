@@ -1,49 +1,31 @@
+mod player_data;
+
 use super::states::standing_state::StandingState;
-use super::{Commands, Event, Observer, Obstacle, PossibleObserver, State, Subject};
+use super::{Commands, Event, Observer, Obstacle, PossibleObserver, State, StateData, Subject};
 use ggez::graphics::{DrawMode, Mesh, MeshBuilder, Rect, WHITE};
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameResult};
+use player_data::PlayerData;
 
-pub struct Player<STATE: State> {
-    location: Vector2<f32>,
-    starting_location: Vector2<f32>,
-    height: f32,
-    width: f32,
-    acceleration: Vector2<f32>,
-    velocity: Vector2<f32>,
-    jump_force: Vector2<f32>,
-    is_jumping: bool,
+pub struct Player {
+    player_data: Box<PlayerData>,
     observers: Vec<PossibleObserver>,
-    pub state: STATE,
+    pub state: Box<dyn State>,
 }
 
 // trying to make state dynamically generic
 // maybe use a box - Vrixyz
-impl<STATE: State> Player<STATE<dyn State>> {
-    pub fn new(x: f32, y: f32) -> Player<STATE> {
-        let acceleration = Vector2::new(0.0, 0.0);
-        let velocity = Vector2::new(0.0, 0.0);
-        let jump_force = Vector2::new(0.0, -9.0);
-        let is_jumping = false;
-        let location = Vector2::new(x, y);
-        let starting_location = location;
-
+impl Player {
+    pub fn new(x: f32, y: f32) -> Player {
         Player {
-            location,
-            starting_location,
-            height: 50.0,
-            width: 15.0,
-            acceleration,
-            velocity,
-            jump_force,
-            is_jumping,
+            player_data: Box::new(PlayerData::new(x, y)),
             observers: vec![],
-            state: StandingState::new(),
+            state: Box::new(StandingState::new()),
         }
     }
 
     pub fn create_mesh(&self, context: &mut Context) -> GameResult<Mesh> {
-        let rect_bounds = Rect::new(0.0, 0.0, self.width, self.height);
+        let rect_bounds = Rect::new(0.0, 0.0, self.player_data.width, self.player_data.height);
         let mesh = MeshBuilder::new()
             .rectangle(DrawMode::fill(), rect_bounds, WHITE)
             .build(context)?;
@@ -52,37 +34,39 @@ impl<STATE: State> Player<STATE<dyn State>> {
     }
 
     pub fn get_location(&self) -> Point2<f32> {
-        Point2::new(self.location.x, self.location.y)
+        Point2::new(self.player_data.location.x, self.player_data.location.y)
     }
 
     pub fn reset_location(&mut self) {
-        self.location = self.starting_location;
+        self.player_data.location = self.player_data.starting_location;
     }
 
     pub fn apply_force(&mut self, force: &Vector2<f32>) {
-        self.acceleration += force;
+        self.player_data.acceleration += force;
     }
 
     pub fn run(&mut self, command: &Commands) {
-        self.velocity += self.acceleration;
-        self.location += self.velocity;
-        self.acceleration *= 0.0;
-        self.state.handle_input(command);
+        self.player_data.velocity += self.player_data.acceleration;
+        self.player_data.location += self.player_data.velocity;
+        self.player_data.acceleration *= 0.0;
+        if let Some(new_state) = self.state.handle_input(command, &self.state) {
+            self.state = new_state;
+        }
     }
 
     pub fn hit_ground(&mut self, arena_height: f32) {
-        if self.location.y + self.height > arena_height {
-            self.location.y = arena_height - self.height;
-            self.velocity.y = 0.0;
-            self.is_jumping = false;
+        if self.player_data.location.y + self.player_data.height > arena_height {
+            self.player_data.location.y = arena_height - self.player_data.height;
+            self.player_data.velocity.y = 0.0;
+            self.player_data.is_jumping = false;
         }
     }
 
     pub fn jump(&mut self) {
-        if !self.is_jumping {
-            let jump_force = self.jump_force.clone();
+        if !self.player_data.is_jumping {
+            let jump_force = self.player_data.jump_force.clone();
             self.apply_force(&jump_force);
-            self.is_jumping = true;
+            self.player_data.is_jumping = true;
         }
     }
 
@@ -90,10 +74,10 @@ impl<STATE: State> Player<STATE<dyn State>> {
         let obstacle_location = obstacle.get_location();
         let (obstacle_width, obstacle_height) = obstacle.get_size();
 
-        if self.location.x < obstacle_location.x + obstacle_width
-            && self.location.x + self.width > obstacle_location.x
-            && self.location.y < obstacle_location.y + obstacle_height
-            && self.location.y + self.height > obstacle_location.y
+        if self.player_data.location.x < obstacle_location.x + obstacle_width
+            && self.player_data.location.x + self.player_data.width > obstacle_location.x
+            && self.player_data.location.y < obstacle_location.y + obstacle_height
+            && self.player_data.location.y + self.player_data.height > obstacle_location.y
         {
             self.notify(Event::PlayerRanIntoObstacle);
         }
@@ -101,8 +85,8 @@ impl<STATE: State> Player<STATE<dyn State>> {
 
     pub fn get_location_center(&self) -> Point2<f32> {
         Point2::new(
-            self.location.x + self.width / 2.0,
-            self.location.y + self.height / 2.0,
+            self.player_data.location.x + self.player_data.width / 2.0,
+            self.player_data.location.y + self.player_data.height / 2.0,
         )
     }
 }
