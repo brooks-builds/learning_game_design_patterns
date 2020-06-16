@@ -8,7 +8,7 @@ use ggez::{Context, GameResult};
 use player_data::PlayerData;
 
 pub struct Player {
-    player_data: Box<PlayerData>,
+    player_data: Box<dyn StateData>,
     observers: Vec<PossibleObserver>,
     pub state: Box<dyn State>,
 }
@@ -25,7 +25,12 @@ impl Player {
     }
 
     pub fn create_mesh(&self, context: &mut Context) -> GameResult<Mesh> {
-        let rect_bounds = Rect::new(0.0, 0.0, self.player_data.width, self.player_data.height);
+        let rect_bounds = Rect::new(
+            0.0,
+            0.0,
+            self.player_data.get_width(),
+            self.player_data.get_height(),
+        );
         let mesh = MeshBuilder::new()
             .rectangle(DrawMode::fill(), rect_bounds, WHITE)
             .build(context)?;
@@ -34,7 +39,7 @@ impl Player {
     }
 
     pub fn get_location(&self) -> Point2<f32> {
-        Point2::new(self.player_data.location.x, self.player_data.location.y)
+        self.player_data.get_location_as_point()
     }
 
     pub fn reset_location(&mut self) {
@@ -49,14 +54,14 @@ impl Player {
         self.player_data.velocity += self.player_data.acceleration;
         self.player_data.location += self.player_data.velocity;
         self.player_data.acceleration *= 0.0;
-        if let Some(new_state) = self.state.handle_input(command, &self.state) {
+        if let Some(new_state) = self.state.handle_input(command, &mut self.player_data) {
             self.state = new_state;
         }
     }
 
     pub fn hit_ground(&mut self, arena_height: f32) {
-        if self.player_data.location.y + self.player_data.height > arena_height {
-            self.player_data.location.y = arena_height - self.player_data.height;
+        if self.player_data.location.y + self.player_data.get_height() > arena_height {
+            self.player_data.location.y = arena_height - self.player_data.get_height();
             self.player_data.velocity.y = 0.0;
             self.player_data.is_jumping = false;
         }
@@ -75,9 +80,9 @@ impl Player {
         let (obstacle_width, obstacle_height) = obstacle.get_size();
 
         if self.player_data.location.x < obstacle_location.x + obstacle_width
-            && self.player_data.location.x + self.player_data.width > obstacle_location.x
+            && self.player_data.location.x + self.player_data.get_width() > obstacle_location.x
             && self.player_data.location.y < obstacle_location.y + obstacle_height
-            && self.player_data.location.y + self.player_data.height > obstacle_location.y
+            && self.player_data.location.y + self.player_data.get_height() > obstacle_location.y
         {
             self.notify(Event::PlayerRanIntoObstacle);
         }
@@ -85,8 +90,8 @@ impl Player {
 
     pub fn get_location_center(&self) -> Point2<f32> {
         Point2::new(
-            self.player_data.location.x + self.player_data.width / 2.0,
-            self.player_data.location.y + self.player_data.height / 2.0,
+            self.player_data.location.x + self.player_data.get_width() / 2.0,
+            self.player_data.location.y + self.player_data.get_height() / 2.0,
         )
     }
 }

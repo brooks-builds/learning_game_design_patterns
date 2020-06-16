@@ -1,5 +1,5 @@
 use super::StateData;
-use ggez::nalgebra::Vector2;
+use ggez::nalgebra::{Point2, Vector2};
 
 pub struct PlayerData {
     pub location: Vector2<f32>,
@@ -31,4 +31,16 @@ impl PlayerData {
     }
 }
 
-impl StateData for PlayerData {}
+impl StateData for PlayerData {
+    fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    fn get_height(&self) -> f32 {
+        self.height
+    }
+
+    fn get_location_as_point(&self) -> ggez::nalgebra::Point2<f32> {
+        Point2::new(self.location.x, self.location.y)
+    }
+}
