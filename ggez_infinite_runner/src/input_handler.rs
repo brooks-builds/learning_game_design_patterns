@@ -18,7 +18,7 @@ pub struct InputHandler {
 impl InputHandler {
     pub fn new() -> InputHandler {
         let jump_command_keycode = KeyCode::Space;
-        let reset_game_command_keycode = KeyCode::A;
+        let reset_game_command_keycode = KeyCode::Back;
         let rebinding = Rebinding::Nothing;
 
         InputHandler {
@@ -31,6 +31,8 @@ impl InputHandler {
     pub fn handle_input(&self, context: &mut Context) -> Commands {
         if keyboard::pressed_keys(context).contains(&self.jump_command_keycode) {
             Commands::Jump
+        } else if keyboard::pressed_keys(context).contains(&self.reset_game_command_keycode) {
+            Commands::ResetGame
         } else {
             Commands::NoCommand
         }

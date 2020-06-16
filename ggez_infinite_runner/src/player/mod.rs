@@ -38,8 +38,10 @@ impl Player {
         Point2::new(self.player_data.location.x, self.player_data.location.y)
     }
 
-    pub fn reset_location(&mut self) {
+    pub fn reset(&mut self) {
         self.player_data.location = self.player_data.starting_location;
+        self.state = PlayerStates::InAir;
+        self.player_data.acceleration *= 0.0;
     }
 
     pub fn apply_force(&mut self, force: Vector2<f32>) {
@@ -47,16 +49,17 @@ impl Player {
     }
 
     pub fn run(&mut self, command: &Commands, screen_height: f32) {
-        self.player_data.velocity += self.player_data.acceleration;
-        self.player_data.location += self.player_data.velocity;
-        self.player_data.acceleration *= 0.0;
-        // handle input on state
         if let Some(new_state) = self.state.handle_input(&command) {
             self.state = new_state;
         }
-
-        if let PlayerStates::Jumping = self.state {
-            self.apply_force(self.player_data.jump_force);
+        match self.state {
+            PlayerStates::Jumping => self.apply_force(self.player_data.jump_force),
+            PlayerStates::InAir => {
+                self.player_data.velocity += self.player_data.acceleration;
+                self.player_data.location += self.player_data.velocity;
+                self.player_data.acceleration *= 0.0;
+            }
+            PlayerStates::Standing => (),
         }
 
         if let Some(new_state) = self.state.update(&self.player_data, screen_height) {

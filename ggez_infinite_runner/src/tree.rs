@@ -1,5 +1,5 @@
 use super::{TreeModel, TreeType};
-use ggez::graphics::{Color, DrawParam};
+use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, Context, GameResult};
 use rand::prelude::*;

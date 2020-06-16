@@ -5,7 +5,6 @@ mod game_state;
 mod input_handler;
 mod obstacle;
 mod player;
-mod reset_game_command;
 mod score;
 mod tree;
 mod tree_model;
@@ -294,6 +293,14 @@ impl MyGame {
             .collect();
         self.trees = trees;
     }
+
+    fn reset_game(&mut self) {
+        self.player.reset();
+        self.wrapped_score.lock().unwrap().reset();
+        self.obstacle_1.reset_to_start();
+        self.obstacle_2.reset_to_start();
+        self.wrapped_game_state.lock().unwrap().playing();
+    }
 }
 
 impl EventHandler for MyGame {
@@ -336,15 +343,9 @@ impl EventHandler for MyGame {
                 self.destroy_trees_offscreen();
             }
             GameState::GameOver => {
-                // if let Some(command) = &mut self.input_handler.handle_game_input(context) {
-                //     command.execute(
-                //         &mut self.player,
-                //         self.wrapped_score.clone(),
-                //         &mut self.obstacle_1,
-                //         &mut self.obstacle_2,
-                //         self.wrapped_game_state.clone(),
-                //     );
-                // }
+                if let Commands::ResetGame = self.input_handler.handle_input(context) {
+                    self.reset_game();
+                }
             }
             GameState::Help => {
                 if mouse::button_pressed(context, mouse::MouseButton::Left) {

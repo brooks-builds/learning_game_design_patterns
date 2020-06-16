@@ -1,4 +1,4 @@
-use ggez::nalgebra::{Point2, Vector2};
+use ggez::nalgebra::Vector2;
 
 pub struct PlayerData {
     pub location: Vector2<f32>,
