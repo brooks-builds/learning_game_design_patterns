@@ -7,7 +7,6 @@ mod obstacle;
 mod player;
 mod reset_game_command;
 mod score;
-mod states;
 mod tree;
 mod tree_model;
 
@@ -27,7 +26,6 @@ use player::Player;
 use rand::distributions::Uniform;
 use rand::prelude::*;
 use score::Score;
-use states::{State, StateData};
 use std::sync::{Arc, Mutex};
 use tree::Tree;
 use tree_model::{TreeModel, TreeType};
@@ -61,7 +59,7 @@ impl MyGame {
         let (arena_width, arena_height) = graphics::drawable_size(context);
         let mut player = Player::new(350.0, 50.0);
         let player_mesh = player.create_mesh(context)?;
-        let gravity = Vector2::new(0.0, 0.5);
+        let gravity = Vector2::new(0.0, 0.3);
         let obstacle_size = 25.0;
         let mut obstacle_1 = Obstacle::new(
             arena_width + obstacle_size,
@@ -90,7 +88,7 @@ impl MyGame {
         obstacle_1.add_observer(score_observer.clone());
         obstacle_2.add_observer(score_observer);
 
-        // player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
+        player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
         let tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Normal);
         let tall_tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Tall);
@@ -310,9 +308,9 @@ impl EventHandler for MyGame {
         match game_state {
             GameState::Playing => {
                 let (_arena_width, arena_height) = graphics::drawable_size(context);
-                self.player.apply_force(&self.gravity);
+                self.player.apply_force(self.gravity);
                 let command = self.input_handler.handle_input(context);
-                self.player.run(&command);
+                self.player.run(&command, arena_height);
                 self.player.hit_ground(arena_height);
                 self.obstacle_1.run(&self.player);
                 if self.obstacle_1.is_offscreen() {

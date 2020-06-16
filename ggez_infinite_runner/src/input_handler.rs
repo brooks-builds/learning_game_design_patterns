@@ -18,7 +18,7 @@ pub struct InputHandler {
 impl InputHandler {
     pub fn new() -> InputHandler {
         let jump_command_keycode = KeyCode::Space;
-        let reset_game_command_keycode = KeyCode::Back;
+        let reset_game_command_keycode = KeyCode::A;
         let rebinding = Rebinding::Nothing;
 
         InputHandler {

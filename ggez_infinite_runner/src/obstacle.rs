@@ -19,7 +19,7 @@ impl Obstacle {
         let location = Vector2::new(location_x, location_y);
         let location_to_reset_to = Vector2::new(arena_width + size, location_y);
         let starting_location = location;
-        let velocity = Vector2::new(-5.0, 0.0);
+        let velocity = Vector2::new(-2.5, 0.0);
         let width = size;
         let height = size;
         let speed_increase_rate = -0.1;
