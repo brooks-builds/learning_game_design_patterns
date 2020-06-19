@@ -29,6 +29,8 @@ use std::sync::{Arc, Mutex};
 use tree::Tree;
 use tree_model::{TreeModel, TreeType};
 
+const MS_PER_FRAME: u32 = 1000 / 60;
+
 pub struct MyGame {
     player: Player,
     player_mesh: Mesh,
@@ -49,6 +51,7 @@ pub struct MyGame {
     create_tree_at: u64,
     trees_to_clone: Vec<Tree>,
     trees_to_clone_distribution: Uniform<usize>,
+    target_fps: std::time::Duration,
 }
 
 impl MyGame {
@@ -87,7 +90,7 @@ impl MyGame {
         obstacle_1.add_observer(score_observer.clone());
         obstacle_2.add_observer(score_observer);
 
-        player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
+        // player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
         let tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Normal);
         let tall_tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Tall);
@@ -114,6 +117,7 @@ impl MyGame {
             create_tree_at,
             trees_to_clone,
             trees_to_clone_distribution,
+            target_fps: std::time::Duration::new(1000 / 60, 0),
         })
     }
 
@@ -305,68 +309,68 @@ impl MyGame {
 
 impl EventHandler for MyGame {
     fn update(&mut self, context: &mut Context) -> GameResult<()> {
-        // Update code here...
-        let game_state;
+        while timer::check_update_time(context, 60) {
+            let game_state;
 
-        {
-            game_state = self.wrapped_game_state.lock().unwrap().clone();
-        }
-
-        match game_state {
-            GameState::Playing => {
-                let (_arena_width, arena_height) = graphics::drawable_size(context);
-                self.player.apply_force(self.gravity);
-                let command = self.input_handler.handle_input(context);
-                self.player.run(&command, arena_height);
-                self.player.hit_ground(arena_height);
-                self.obstacle_1.run(&self.player);
-                if self.obstacle_1.is_offscreen() {
-                    self.obstacle_1.reset_location();
-                }
-                self.obstacle_2.run(&self.player);
-                if self.obstacle_2.is_offscreen() {
-                    self.obstacle_2.reset_location();
-                }
-                let time_since_start = timer::time_since_start(context).as_secs();
-                if time_since_start >= self.time_since_start_to_increase_speed {
-                    self.obstacle_1.increase_speed();
-                    self.obstacle_2.increase_speed();
-                    self.time_since_start_to_increase_speed =
-                        time_since_start + self.increase_speed_every_seconds;
-                }
-
-                self.player.handle_running_into_obstacle(&self.obstacle_1);
-                self.player.handle_running_into_obstacle(&self.obstacle_2);
-
-                self.update_trees();
-                self.create_tree(context)?;
-                self.destroy_trees_offscreen();
+            {
+                game_state = self.wrapped_game_state.lock().unwrap().clone();
             }
-            GameState::GameOver => {
-                if let Commands::ResetGame = self.input_handler.handle_input(context) {
-                    self.reset_game();
+
+            match game_state {
+                GameState::Playing => {
+                    let (_arena_width, arena_height) = graphics::drawable_size(context);
+                    self.player.apply_force(self.gravity);
+                    let command = self.input_handler.handle_input(context);
+                    self.player.run(&command, arena_height);
+                    self.player.hit_ground(arena_height);
+                    self.obstacle_1.run(&self.player);
+                    if self.obstacle_1.is_offscreen() {
+                        self.obstacle_1.reset_location();
+                    }
+                    self.obstacle_2.run(&self.player);
+                    if self.obstacle_2.is_offscreen() {
+                        self.obstacle_2.reset_location();
+                    }
+                    let time_since_start = timer::time_since_start(context).as_secs();
+                    if time_since_start >= self.time_since_start_to_increase_speed {
+                        self.obstacle_1.increase_speed();
+                        self.obstacle_2.increase_speed();
+                        self.time_since_start_to_increase_speed =
+                            time_since_start + self.increase_speed_every_seconds;
+                    }
+
+                    self.player.handle_running_into_obstacle(&self.obstacle_1);
+                    self.player.handle_running_into_obstacle(&self.obstacle_2);
+
+                    self.update_trees();
+                    self.create_tree(context)?;
+                    self.destroy_trees_offscreen();
                 }
-            }
-            GameState::Help => {
-                if mouse::button_pressed(context, mouse::MouseButton::Left) {
-                    let mouse_position = mouse::position(context);
-                    if self.input_handler.not_binding() {
-                        if self
-                            .rebind_jump_button
-                            .is_being_clicked(mouse_position.into())
-                        {
-                            self.input_handler.start_binding_jump();
-                        } else if self
-                            .rebind_reset_game_button
-                            .is_being_clicked(mouse_position.into())
-                        {
-                            self.input_handler.start_binding_reset_game();
+                GameState::GameOver => {
+                    if let Commands::ResetGame = self.input_handler.handle_input(context) {
+                        self.reset_game();
+                    }
+                }
+                GameState::Help => {
+                    if mouse::button_pressed(context, mouse::MouseButton::Left) {
+                        let mouse_position = mouse::position(context);
+                        if self.input_handler.not_binding() {
+                            if self
+                                .rebind_jump_button
+                                .is_being_clicked(mouse_position.into())
+                            {
+                                self.input_handler.start_binding_jump();
+                            } else if self
+                                .rebind_reset_game_button
+                                .is_being_clicked(mouse_position.into())
+                            {
+                                self.input_handler.start_binding_reset_game();
+                            }
                         }
                     }
                 }
             }
         }
-
         Ok(())
     }
 
@@ -403,7 +407,11 @@ impl EventHandler for MyGame {
             GameState::Help => self.draw_help_screen(context)?,
         }
         self.draw_fps(context)?;
-        graphics::present(context)
+        timer::sleep(timer::remaining_update_time(context));
+
+        graphics::present(context)?;
+
+        Ok(())
     }
 
     fn key_down_event(
