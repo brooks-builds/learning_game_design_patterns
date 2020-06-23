@@ -13,7 +13,8 @@ use button::Button;
 use commands::Commands;
 use events::{Event, Observer, PossibleObserver, Subject, WrappedGameState, WrappedScore};
 use game_state::GameState;
-use ggez::event::EventHandler;
+use ggez::event::winit_event::WindowEvent;
+use ggez::event::{EventHandler, EventsLoop};
 use ggez::graphics::{DrawParam, Font, Mesh, Scale, Text};
 use ggez::input::keyboard::{KeyCode, KeyMods};
 use ggez::input::mouse;
@@ -309,63 +310,61 @@ impl MyGame {
 
 impl EventHandler for MyGame {
     fn update(&mut self, context: &mut Context) -> GameResult<()> {
-        while timer::check_update_time(context, 60) {
-            let game_state;
+        let game_state;
 
-            {
-                game_state = self.wrapped_game_state.lock().unwrap().clone();
+        {
+            game_state = self.wrapped_game_state.lock().unwrap().clone();
+        }
+
+        match game_state {
+            GameState::Playing => {
+                let (_arena_width, arena_height) = graphics::drawable_size(context);
+                self.player.apply_force(self.gravity);
+                let command = self.input_handler.handle_input(context);
+                self.player.run(&command, arena_height);
+                self.player.hit_ground(arena_height);
+                self.obstacle_1.run(&self.player);
+                if self.obstacle_1.is_offscreen() {
+                    self.obstacle_1.reset_location();
+                }
+                self.obstacle_2.run(&self.player);
+                if self.obstacle_2.is_offscreen() {
+                    self.obstacle_2.reset_location();
+                }
+                let time_since_start = timer::time_since_start(context).as_secs();
+                if time_since_start >= self.time_since_start_to_increase_speed {
+                    self.obstacle_1.increase_speed();
+                    self.obstacle_2.increase_speed();
+                    self.time_since_start_to_increase_speed =
+                        time_since_start + self.increase_speed_every_seconds;
+                }
+
+                self.player.handle_running_into_obstacle(&self.obstacle_1);
+                self.player.handle_running_into_obstacle(&self.obstacle_2);
+
+                self.update_trees();
+                self.create_tree(context)?;
+                self.destroy_trees_offscreen();
             }
-
-            match game_state {
-                GameState::Playing => {
-                    let (_arena_width, arena_height) = graphics::drawable_size(context);
-                    self.player.apply_force(self.gravity);
-                    let command = self.input_handler.handle_input(context);
-                    self.player.run(&command, arena_height);
-                    self.player.hit_ground(arena_height);
-                    self.obstacle_1.run(&self.player);
-                    if self.obstacle_1.is_offscreen() {
-                        self.obstacle_1.reset_location();
-                    }
-                    self.obstacle_2.run(&self.player);
-                    if self.obstacle_2.is_offscreen() {
-                        self.obstacle_2.reset_location();
-                    }
-                    let time_since_start = timer::time_since_start(context).as_secs();
-                    if time_since_start >= self.time_since_start_to_increase_speed {
-                        self.obstacle_1.increase_speed();
-                        self.obstacle_2.increase_speed();
-                        self.time_since_start_to_increase_speed =
-                            time_since_start + self.increase_speed_every_seconds;
-                    }
-
-                    self.player.handle_running_into_obstacle(&self.obstacle_1);
-                    self.player.handle_running_into_obstacle(&self.obstacle_2);
-
-                    self.update_trees();
-                    self.create_tree(context)?;
-                    self.destroy_trees_offscreen();
+            GameState::GameOver => {
+                if let Commands::ResetGame = self.input_handler.handle_input(context) {
+                    self.reset_game();
                 }
-                GameState::GameOver => {
-                    if let Commands::ResetGame = self.input_handler.handle_input(context) {
-                        self.reset_game();
-                    }
-                }
-                GameState::Help => {
-                    if mouse::button_pressed(context, mouse::MouseButton::Left) {
-                        let mouse_position = mouse::position(context);
-                        if self.input_handler.not_binding() {
-                            if self
-                                .rebind_jump_button
-                                .is_being_clicked(mouse_position.into())
-                            {
-                                self.input_handler.start_binding_jump();
-                            } else if self
-                                .rebind_reset_game_button
-                                .is_being_clicked(mouse_position.into())
-                            {
-                                self.input_handler.start_binding_reset_game();
-                            }
+            }
+            GameState::Help => {
+                if mouse::button_pressed(context, mouse::MouseButton::Left) {
+                    let mouse_position = mouse::position(context);
+                    if self.input_handler.not_binding() {
+                        if self
+                            .rebind_jump_button
+                            .is_being_clicked(mouse_position.into())
+                        {
+                            self.input_handler.start_binding_jump();
+                        } else if self
+                            .rebind_reset_game_button
+                            .is_being_clicked(mouse_position.into())
+                        {
+                            self.input_handler.start_binding_reset_game();
                         }
                     }
                 }
@@ -407,7 +406,6 @@ impl EventHandler for MyGame {
             GameState::Help => self.draw_help_screen(context)?,
         }
         self.draw_fps(context)?;
-        timer::sleep(timer::remaining_update_time(context));
 
         graphics::present(context)?;
 
@@ -431,4 +429,111 @@ impl EventHandler for MyGame {
             self.input_handler.bind_key(keycode);
         }
     }
+}
+
+pub fn run<S>(ctx: &mut Context, events_loop: &mut EventsLoop, state: &mut S) -> GameResult
+where
+    S: EventHandler,
+{
+    use ggez::input::keyboard;
+
+    while ctx.continuing {
+        // If you are writing your own event loop, make sure
+        // you include `timer_context.tick()` and
+        // `ctx.process_event()` calls.  These update ggez's
+        // internal state however necessary.
+        ctx.timer_context.tick();
+        events_loop.poll_events(|event| {
+            ctx.process_event(&event);
+            match event {
+                ggez::event::winit_event::Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::Resized(logical_size) => {
+                        // let actual_size = logical_size;
+                        state.resize_event(
+                            ctx,
+                            logical_size.width as f32,
+                            logical_size.height as f32,
+                        );
+                    }
+                    WindowEvent::CloseRequested => {
+                        if !state.quit_event(ctx) {
+                            ggez::event::quit(ctx);
+                        }
+                    }
+                    WindowEvent::Focused(gained) => {
+                        state.focus_event(ctx, gained);
+                    }
+                    WindowEvent::ReceivedCharacter(ch) => {
+                        state.text_input_event(ctx, ch);
+                    }
+                    WindowEvent::KeyboardInput {
+                        input:
+                            ggez::event::winit_event::KeyboardInput {
+                                state: ggez::event::winit_event::ElementState::Pressed,
+                                virtual_keycode: Some(keycode),
+                                modifiers,
+                                ..
+                            },
+                        ..
+                    } => {
+                        let repeat = keyboard::is_key_repeated(ctx);
+                        state.key_down_event(ctx, keycode, modifiers.into(), repeat);
+                    }
+                    WindowEvent::KeyboardInput {
+                        input:
+                            ggez::event::winit_event::KeyboardInput {
+                                state: ggez::event::winit_event::ElementState::Released,
+                                virtual_keycode: Some(keycode),
+                                modifiers,
+                                ..
+                            },
+                        ..
+                    } => {
+                        state.key_up_event(ctx, keycode, modifiers.into());
+                    }
+                    WindowEvent::MouseWheel { delta, .. } => {
+                        let (x, y) = match delta {
+                            ggez::event::winit_event::MouseScrollDelta::LineDelta(x, y) => (x, y),
+                            ggez::event::winit_event::MouseScrollDelta::PixelDelta(
+                                winit::dpi::LogicalPosition { x, y },
+                            ) => (x as f32, y as f32),
+                        };
+                        state.mouse_wheel_event(ctx, x, y);
+                    }
+                    WindowEvent::MouseInput {
+                        state: element_state,
+                        button,
+                        ..
+                    } => {
+                        let position = mouse::position(ctx);
+                        match element_state {
+                            ggez::event::winit_event::ElementState::Pressed => {
+                                state.mouse_button_down_event(ctx, button, position.x, position.y)
+                            }
+                            ggez::event::winit_event::ElementState::Released => {
+                                state.mouse_button_up_event(ctx, button, position.x, position.y)
+                            }
+                        }
+                    }
+                    WindowEvent::CursorMoved { .. } => {
+                        let position = mouse::position(ctx);
+                        let delta = mouse::delta(ctx);
+                        state.mouse_motion_event(ctx, position.x, position.y, delta.x, delta.y);
+                    }
+                    _x => {
+                        // trace!("ignoring window event {:?}", x);
+                    }
+                },
+                ggez::event::winit_event::Event::DeviceEvent { event, .. } => match event {
+                    _ => (),
+                },
+                ggez::event::winit_event::Event::Awakened => (),
+                ggez::event::winit_event::Event::Suspended(_) => (),
+            }
+        });
+        state.update(ctx)?;
+        state.draw(ctx)?;
+    }
+
+    Ok(())
 }
