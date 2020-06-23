@@ -1,7 +1,7 @@
 // extern crate ggez_infinite_runner;
 
 use ggez::conf::{WindowMode, WindowSetup};
-use ggez::{event, ContextBuilder};
+use ggez::ContextBuilder;
 use ggez_infinite_runner::{run, MyGame};
 
 fn main() {

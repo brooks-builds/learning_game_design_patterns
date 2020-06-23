@@ -54,7 +54,6 @@ pub struct MyGame {
     create_tree_at: u64,
     trees_to_clone: Vec<Tree>,
     trees_to_clone_distribution: Uniform<usize>,
-    target_fps: std::time::Duration,
 }
 
 impl MyGame {
@@ -93,7 +92,7 @@ impl MyGame {
         obstacle_1.add_observer(score_observer.clone());
         obstacle_2.add_observer(score_observer);
 
-        // player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
+        player.add_observer(PossibleObserver::GameState(wrapped_game_state.clone()));
 
         let tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Normal);
         let tall_tree = Tree::new(arena_width, arena_height, &tree_model, TreeType::Tall);
@@ -120,7 +119,6 @@ impl MyGame {
             create_tree_at,
             trees_to_clone,
             trees_to_clone_distribution,
-            target_fps: std::time::Duration::new(1000 / 60, 0),
         })
     }
 
