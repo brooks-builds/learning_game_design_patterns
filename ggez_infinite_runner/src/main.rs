@@ -2,7 +2,7 @@
 
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::{event, ContextBuilder};
-use ggez_infinite_runner::MyGame;
+use ggez_infinite_runner::{run, MyGame};
 
 fn main() {
     // Make a Context.
@@ -21,7 +21,7 @@ fn main() {
     let mut my_game = MyGame::new(&mut context).unwrap();
 
     // Run!
-    match event::run(&mut context, &mut event_loop, &mut my_game) {
+    match run(&mut context, &mut event_loop, &mut my_game) {
         Ok(_) => println!("Exited cleanly."),
         Err(e) => println!("Error occured: {}", e),
     }

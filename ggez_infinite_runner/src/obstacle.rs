@@ -48,8 +48,11 @@ impl Obstacle {
             .build(context)
     }
 
-    pub fn get_location(&self) -> Point2<f32> {
-        Point2::new(self.location.x, self.location.y)
+    pub fn get_location(&self, offset_percentage: f32) -> Point2<f32> {
+        Point2::new(
+            self.location.x - self.velocity.x * offset_percentage,
+            self.location.y,
+        )
     }
 
     pub fn reset_to_start(&mut self) {

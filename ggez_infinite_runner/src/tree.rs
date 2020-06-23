@@ -33,11 +33,15 @@ impl Tree {
         context: &mut Context,
         tree_model: &TreeModel,
         _rng: &mut ThreadRng,
+        percentage_offset: f32,
     ) -> GameResult<()> {
         graphics::draw(
             context,
             tree_model.get_trunk_mesh(&self.tree_type),
-            DrawParam::default().dest(Point2::new(self.location.x, self.location.y)),
+            DrawParam::default().dest(Point2::new(
+                self.location.x - percentage_offset * tree_model.get_velocity(&self.tree_type).x,
+                self.location.y,
+            )),
         )?;
 
         for tree_count in 0..tree_model.get_leaf_count() {
@@ -46,7 +50,8 @@ impl Tree {
                 tree_model.get_leaves_mesh(),
                 DrawParam::default()
                     .dest(Point2::new(
-                        self.location.x,
+                        self.location.x
+                            - percentage_offset * tree_model.get_velocity(&self.tree_type).x,
                         self.location.y + 50.0 * tree_count as f32,
                     ))
                     .color(tree_model.get_branch_color()),

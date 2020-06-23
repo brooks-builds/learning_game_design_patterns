@@ -27,10 +27,12 @@ use rand::distributions::Uniform;
 use rand::prelude::*;
 use score::Score;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tree::Tree;
 use tree_model::{TreeModel, TreeType};
 
-const MS_PER_FRAME: u32 = 1000 / 60;
+const UPDATES_PER_TICK: u32 = 60;
+const FRAMES_PER_SECOND_TARGET: Duration = Duration::from_millis(1000 / 144);
 
 pub struct MyGame {
     player: Player,
@@ -256,9 +258,9 @@ impl MyGame {
         Ok(())
     }
 
-    fn draw_trees(&mut self, context: &mut Context) -> GameResult<()> {
+    fn draw_trees(&mut self, context: &mut Context, offset_percentage: f32) -> GameResult<()> {
         for tree in &self.trees {
-            tree.draw(context, &self.tree_model, &mut self.rng)?
+            tree.draw(context, &self.tree_model, &mut self.rng, offset_percentage)?
         }
 
         Ok(())
@@ -310,61 +312,63 @@ impl MyGame {
 
 impl EventHandler for MyGame {
     fn update(&mut self, context: &mut Context) -> GameResult<()> {
-        let game_state;
+        while timer::check_update_time(context, UPDATES_PER_TICK) {
+            let game_state;
 
-        {
-            game_state = self.wrapped_game_state.lock().unwrap().clone();
-        }
-
-        match game_state {
-            GameState::Playing => {
-                let (_arena_width, arena_height) = graphics::drawable_size(context);
-                self.player.apply_force(self.gravity);
-                let command = self.input_handler.handle_input(context);
-                self.player.run(&command, arena_height);
-                self.player.hit_ground(arena_height);
-                self.obstacle_1.run(&self.player);
-                if self.obstacle_1.is_offscreen() {
-                    self.obstacle_1.reset_location();
-                }
-                self.obstacle_2.run(&self.player);
-                if self.obstacle_2.is_offscreen() {
-                    self.obstacle_2.reset_location();
-                }
-                let time_since_start = timer::time_since_start(context).as_secs();
-                if time_since_start >= self.time_since_start_to_increase_speed {
-                    self.obstacle_1.increase_speed();
-                    self.obstacle_2.increase_speed();
-                    self.time_since_start_to_increase_speed =
-                        time_since_start + self.increase_speed_every_seconds;
-                }
-
-                self.player.handle_running_into_obstacle(&self.obstacle_1);
-                self.player.handle_running_into_obstacle(&self.obstacle_2);
-
-                self.update_trees();
-                self.create_tree(context)?;
-                self.destroy_trees_offscreen();
+            {
+                game_state = self.wrapped_game_state.lock().unwrap().clone();
             }
-            GameState::GameOver => {
-                if let Commands::ResetGame = self.input_handler.handle_input(context) {
-                    self.reset_game();
+
+            match game_state {
+                GameState::Playing => {
+                    let (_arena_width, arena_height) = graphics::drawable_size(context);
+                    self.player.apply_force(self.gravity);
+                    let command = self.input_handler.handle_input(context);
+                    self.player.run(&command, arena_height);
+                    self.player.hit_ground(arena_height);
+                    self.obstacle_1.run(&self.player);
+                    if self.obstacle_1.is_offscreen() {
+                        self.obstacle_1.reset_location();
+                    }
+                    self.obstacle_2.run(&self.player);
+                    if self.obstacle_2.is_offscreen() {
+                        self.obstacle_2.reset_location();
+                    }
+                    let time_since_start = timer::time_since_start(context).as_secs();
+                    if time_since_start >= self.time_since_start_to_increase_speed {
+                        self.obstacle_1.increase_speed();
+                        self.obstacle_2.increase_speed();
+                        self.time_since_start_to_increase_speed =
+                            time_since_start + self.increase_speed_every_seconds;
+                    }
+
+                    self.player.handle_running_into_obstacle(&self.obstacle_1);
+                    self.player.handle_running_into_obstacle(&self.obstacle_2);
+
+                    self.update_trees();
+                    self.create_tree(context)?;
+                    self.destroy_trees_offscreen();
                 }
-            }
-            GameState::Help => {
-                if mouse::button_pressed(context, mouse::MouseButton::Left) {
-                    let mouse_position = mouse::position(context);
-                    if self.input_handler.not_binding() {
-                        if self
-                            .rebind_jump_button
-                            .is_being_clicked(mouse_position.into())
-                        {
-                            self.input_handler.start_binding_jump();
-                        } else if self
-                            .rebind_reset_game_button
-                            .is_being_clicked(mouse_position.into())
-                        {
-                            self.input_handler.start_binding_reset_game();
+                GameState::GameOver => {
+                    if let Commands::ResetGame = self.input_handler.handle_input(context) {
+                        self.reset_game();
+                    }
+                }
+                GameState::Help => {
+                    if mouse::button_pressed(context, mouse::MouseButton::Left) {
+                        let mouse_position = mouse::position(context);
+                        if self.input_handler.not_binding() {
+                            if self
+                                .rebind_jump_button
+                                .is_being_clicked(mouse_position.into())
+                            {
+                                self.input_handler.start_binding_jump();
+                            } else if self
+                                .rebind_reset_game_button
+                                .is_being_clicked(mouse_position.into())
+                            {
+                                self.input_handler.start_binding_reset_game();
+                            }
                         }
                     }
                 }
@@ -377,6 +381,8 @@ impl EventHandler for MyGame {
         graphics::clear(context, graphics::BLACK);
         // Draw code here...
         let game_state;
+        let updates_per_second_percentage =
+            timer::remaining_update_time(context).as_millis() as f32 / UPDATES_PER_TICK as f32;
 
         {
             game_state = self.wrapped_game_state.lock().unwrap().clone();
@@ -384,7 +390,7 @@ impl EventHandler for MyGame {
 
         match game_state {
             GameState::Playing => {
-                self.draw_trees(context)?;
+                self.draw_trees(context, updates_per_second_percentage)?;
                 graphics::draw(
                     context,
                     &self.player_mesh,
@@ -393,12 +399,14 @@ impl EventHandler for MyGame {
                 graphics::draw(
                     context,
                     &self.obstacle_mesh,
-                    DrawParam::default().dest(self.obstacle_1.get_location()),
+                    DrawParam::default()
+                        .dest(self.obstacle_1.get_location(updates_per_second_percentage)),
                 )?;
                 graphics::draw(
                     context,
                     &self.obstacle_mesh,
-                    DrawParam::default().dest(self.obstacle_2.get_location()),
+                    DrawParam::default()
+                        .dest(self.obstacle_2.get_location(updates_per_second_percentage)),
                 )?;
                 self.draw_score(context)?;
             }
@@ -438,6 +446,7 @@ where
     use ggez::input::keyboard;
 
     while ctx.continuing {
+        let start_time = std::time::Instant::now();
         // If you are writing your own event loop, make sure
         // you include `timer_context.tick()` and
         // `ctx.process_event()` calls.  These update ggez's
@@ -533,6 +542,13 @@ where
         });
         state.update(ctx)?;
         state.draw(ctx)?;
+        let tick_time_elapsed = start_time.elapsed();
+        // if tick time elapsed is less than target draw FPS
+        if tick_time_elapsed < FRAMES_PER_SECOND_TARGET {
+            // then pause for difference between target and elapsed time
+            let sleep_time = FRAMES_PER_SECOND_TARGET - tick_time_elapsed;
+            timer::sleep(sleep_time);
+        }
     }
 
     Ok(())

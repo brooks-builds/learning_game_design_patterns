@@ -76,7 +76,7 @@ impl Player {
     }
 
     pub fn handle_running_into_obstacle(&mut self, obstacle: &Obstacle) {
-        let obstacle_location = obstacle.get_location();
+        let obstacle_location = obstacle.get_location(0.0);
         let (obstacle_width, obstacle_height) = obstacle.get_size();
 
         if self.player_data.location.x < obstacle_location.x + obstacle_width
