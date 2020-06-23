@@ -28,8 +28,8 @@ impl TreeModel {
         let trunk_height = 350.0;
         let tall_trunk_height = 550.0;
         let leaves_length = 250.0;
-        let velocity = Vector2::new(-0.2, 0.0);
-        let tall_velocity = Vector2::new(-0.5, 0.0);
+        let velocity = Vector2::new(-1.0, 0.0);
+        let tall_velocity = Vector2::new(-2.0, 0.0);
         let trunk_mesh = MeshBuilder::new()
             .rectangle(
                 DrawMode::fill(),

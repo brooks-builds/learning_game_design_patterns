@@ -284,7 +284,7 @@ impl MyGame {
             TreeType::Tall => self.trees.push(tree),
         }
 
-        self.create_tree_at = current_time + self.rng.gen_range(1, 15);
+        self.create_tree_at = current_time + self.rng.gen_range(1, 5);
 
         Ok(())
     }
