@@ -48,13 +48,14 @@ impl Player {
         self.player_data.acceleration += force;
     }
 
-    pub fn run(&mut self, command: &Commands, screen_height: f32) {
+    pub fn run(&mut self, command: &Commands, screen_height: f32, gravity: Vector2<f32>) {
         if let Some(new_state) = self.state.handle_input(&command) {
             self.state = new_state;
         }
         match self.state {
             PlayerStates::Jumping => self.apply_force(self.player_data.jump_force),
             PlayerStates::InAir => {
+                self.apply_force(gravity);
                 self.player_data.velocity += self.player_data.acceleration;
                 self.player_data.location += self.player_data.velocity;
                 self.player_data.acceleration *= 0.0;

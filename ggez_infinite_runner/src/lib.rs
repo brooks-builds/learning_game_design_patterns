@@ -320,9 +320,8 @@ impl EventHandler for MyGame {
             match game_state {
                 GameState::Playing => {
                     let (_arena_width, arena_height) = graphics::drawable_size(context);
-                    self.player.apply_force(self.gravity);
                     let command = self.input_handler.handle_input(context);
-                    self.player.run(&command, arena_height);
+                    self.player.run(&command, arena_height, self.gravity);
                     self.player.hit_ground(arena_height);
                     self.obstacle_1.run(&self.player);
                     if self.obstacle_1.is_offscreen() {
