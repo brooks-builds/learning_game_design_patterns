@@ -70,7 +70,6 @@ function generateCommands() {
       gameState.running = true;
       player.reset();
       obstacles.forEach((obstacle) => obstacle.initialize());
-      gameState.initializeGameSpeed();
     },
   };
 }
@@ -120,6 +119,13 @@ function didWeScore(world) {
     ) {
       player.incrementScore();
       obstacle.wasJumpedOver();
+      increaseSpeed(world);
     }
+  });
+}
+
+function increaseSpeed(world) {
+  world.getEntityByType(types.obstacle).forEach((obstacle) => {
+    obstacle.increaseSpeed();
   });
 }

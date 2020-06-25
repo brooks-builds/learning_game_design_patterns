@@ -2,12 +2,13 @@ class Obstacle extends Entity {
   constructor(location) {
     super(types.obstacle);
     this.initialLocation = location.copy();
-    this.initialize();
     this.width = 15;
     this.height = 15;
     this.increaseSpeedBy = 0.1;
     this.velocity = createVector(-5, 0);
+    this.initialVelocity = this.velocity.copy();
     this.jumpedOver = false;
+    this.initialize();
   }
 
   render() {
@@ -36,6 +37,7 @@ class Obstacle extends Entity {
 
   initialize() {
     this.location = this.initialLocation.copy();
+    this.velocity = this.initialVelocity.copy();
   }
 
   isRightOfPlayer(player) {
@@ -48,5 +50,9 @@ class Obstacle extends Entity {
 
   wasJumpedOver() {
     this.jumpedOver = true;
+  }
+
+  increaseSpeed() {
+    this.velocity.x -= 0.5;
   }
 }
