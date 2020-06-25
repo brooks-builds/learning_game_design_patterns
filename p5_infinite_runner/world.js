@@ -2,6 +2,7 @@ class World {
   constructor() {
     this.trees = [];
     this.chanceToCreateTree = 0.02;
+    this.entities = [];
   }
 
   drawTrees() {
@@ -46,5 +47,21 @@ class World {
 
       if (tree.isOffScreen()) this.trees.splice(treeIndex, 1);
     }
+  }
+
+  update() {
+    this.entities.forEach((entity) => entity.update());
+  }
+
+  registerEntity(entity) {
+    this.entities.push(entity);
+  }
+
+  render() {
+    this.entities.forEach((entity) => entity.render());
+  }
+
+  getEntityByType(type) {
+    return this.entities.filter((entity) => entity.type == type);
   }
 }

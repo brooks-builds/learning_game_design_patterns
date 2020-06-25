@@ -1,5 +1,6 @@
-class Player {
+class Player extends Entity {
   constructor(location, jumpOverObstacleEvent, collidedEvent) {
+    super(types.player);
     this.initialLocation = location.copy();
     this.reset();
     this.width = 5;
@@ -25,17 +26,6 @@ class Player {
     this.location.add(this.velocity);
     this.acceleration.mult(0);
     this.state.update(this);
-  }
-
-  checkIfHitting(obstacle) {
-    if (
-      this.location.x < obstacle.location.x + obstacle.width &&
-      this.location.x + this.width > obstacle.location.x &&
-      this.location.y < obstacle.location.y + obstacle.height &&
-      this.location.y + this.height > obstacle.location.y
-    ) {
-      this.collidedEvent.notify(this, COLLIDE_WITH_OBSTACLE);
-    }
   }
 
   incrementScore() {

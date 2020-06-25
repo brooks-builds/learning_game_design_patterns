@@ -1,13 +1,5 @@
 class GameState {
-  constructor() {
-    const jumpOverObstacleEvent = new EventSystem();
-    const collidedEvent = new EventSystem();
-
-    this.player = new Player(
-      createVector(50, 25),
-      jumpOverObstacleEvent,
-      collidedEvent
-    );
+  constructor(jumpOverObstacleEvent, collidedEvent) {
     this.obstacles = [];
     this.obstacles.push(
       new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
@@ -15,7 +7,6 @@ class GameState {
     );
     this.gravity = createVector(0, 1);
     this.isRunning = true;
-    this.world = new World();
     this.initializeGameSpeed();
     this.floorHeight = 5;
 
@@ -42,10 +33,6 @@ class GameState {
 
   get getPlayer() {
     return this.player;
-  }
-
-  get getWorld() {
-    return this.world;
   }
 
   get getGravity() {
