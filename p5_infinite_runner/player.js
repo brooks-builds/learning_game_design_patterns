@@ -1,15 +1,12 @@
 class Player extends Entity {
-  constructor(location, jumpOverObstacleEvent, collidedEvent) {
+  constructor(location, collidedEvent) {
     super(types.player);
     this.initialLocation = location.copy();
     this.reset();
     this.width = 5;
     this.height = 20;
-    this.jumpOverObstacleEvent = jumpOverObstacleEvent;
     this.collidedEvent = collidedEvent;
     this.state = new JumpingState(this);
-
-    this.jumpOverObstacleEvent.addObserver(this);
   }
 
   render() {
@@ -37,12 +34,6 @@ class Player extends Entity {
     this.location = this.initialLocation.copy();
     this.velocity = createVector(0, 0);
     this.acceleration = createVector(0, 0);
-  }
-
-  onNotify(entity, event) {
-    if (event == EVENT_JUMPED_OVER_OBSTACLE) {
-      entity.incrementScore();
-    }
   }
 
   handleInput(command) {

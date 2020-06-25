@@ -1,10 +1,5 @@
 class GameState {
   constructor(jumpOverObstacleEvent, collidedEvent) {
-    this.obstacles = [];
-    this.obstacles.push(
-      new Obstacle(createVector(800, 680), jumpOverObstacleEvent),
-      new Obstacle(createVector(1200, 680), jumpOverObstacleEvent)
-    );
     this.gravity = createVector(0, 1);
     this.isRunning = true;
     this.initializeGameSpeed();

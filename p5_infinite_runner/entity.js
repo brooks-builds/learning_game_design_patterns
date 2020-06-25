@@ -6,4 +6,5 @@ class Entity {
 
 const types = {
   player: "player",
+  obstacle: "obstacle",
 };

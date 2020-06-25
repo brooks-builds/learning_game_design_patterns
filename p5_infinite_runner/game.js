@@ -1,18 +1,17 @@
 function setup() {
   createCanvas(770, 700);
 
-  const jumpOverObstacleEvent = new EventSystem();
+  jumpOverObstacleEvent = new EventSystem();
   const collidedEvent = new EventSystem();
 
   gameState = new GameState(jumpOverObstacleEvent, collidedEvent);
   world = new World();
 
-  const player = new Player(
-    createVector(50, 25),
-    jumpOverObstacleEvent,
-    collidedEvent
-  );
+  const player = new Player(createVector(50, 25), collidedEvent);
+
   world.registerEntity(player);
+  world.registerEntity(new Obstacle(createVector(800, 680)));
+  world.registerEntity(new Obstacle(createVector(1200, 680)));
 }
 
 function draw() {
@@ -29,12 +28,9 @@ function draw() {
     rect(0, height - 5, width, 5);
     world.render();
     const players = world.getEntityByType(types.player);
-    gameState.getObstacles.forEach((obstacle) => {
-      obstacle.render();
-      obstacle.update(gameState.getRunSpeed, players[0]);
-      isPlayerHittingAnObstacle(world, obstacle);
-    });
     gameState.setRunSpeed = gameState.getRunSpeed.x - 0.1;
+    isPlayerHittingAnObstacle(world);
+    didWeScore(world);
   } else if (gameState.running == false) {
     textSize(30);
     const gameOverText = "Game Over";
@@ -69,9 +65,11 @@ function generateCommands() {
     },
     restartGame: function (world) {
       const [player] = world.getEntityByType(types.player);
+      const obstacles = world.getEntityByType(types.obstacle);
+
       gameState.running = true;
       player.reset();
-      gameState.getObstacles.forEach((obstacle) => obstacle.initialize());
+      obstacles.forEach((obstacle) => obstacle.initialize());
       gameState.initializeGameSpeed();
     },
   };
@@ -80,18 +78,22 @@ function generateCommands() {
 let inputHandler = new InputHandler(generateCommands());
 let gameState;
 let world;
+let jumpOverObstacleEvent;
 
-function isPlayerHittingAnObstacle(world, obstacle) {
-  const players = world.getEntityByType(types.player);
+function isPlayerHittingAnObstacle(world) {
+  const [player] = world.getEntityByType(types.player);
+  const obstacles = world.getEntityByType(types.obstacle);
 
-  if (
-    players[0].location.x < obstacle.location.x + obstacle.width &&
-    players[0].location.x + players[0].width > obstacle.location.x &&
-    players[0].location.y < obstacle.location.y + obstacle.height &&
-    players[0].location.y + players[0].height > obstacle.location.y
-  ) {
-    players[0].collidedEvent.notify(players[0], COLLIDE_WITH_OBSTACLE);
-  }
+  obstacles.forEach((obstacle) => {
+    if (
+      player.location.x < obstacle.location.x + obstacle.width &&
+      player.location.x + player.width > obstacle.location.x &&
+      player.location.y < obstacle.location.y + obstacle.height &&
+      player.location.y + player.height > obstacle.location.y
+    ) {
+      player.collidedEvent.notify(player, COLLIDE_WITH_OBSTACLE);
+    }
+  });
 }
 
 function drawInterface(world) {
@@ -104,4 +106,20 @@ function drawInterface(world) {
     5,
     60
   );
+}
+
+function didWeScore(world) {
+  const [player] = world.getEntityByType(types.player);
+  const obstacles = world.getEntityByType(types.obstacle);
+
+  obstacles.forEach((obstacle) => {
+    if (
+      obstacle.location.x + obstacle.width / 2 <
+        player.location.x + player.width / 2 &&
+      !obstacle.jumpedOver
+    ) {
+      player.incrementScore();
+      obstacle.wasJumpedOver();
+    }
+  });
 }
