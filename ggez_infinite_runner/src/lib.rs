@@ -1,5 +1,6 @@
 mod button;
 mod commands;
+mod entity;
 mod events;
 mod game_state;
 mod input_handler;
