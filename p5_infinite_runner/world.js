@@ -58,7 +58,17 @@ class World {
   }
 
   render() {
-    this.entities.forEach((entity) => entity.render());
+    const entitiesByDrawPlane = this.entities.reduce(
+      (groups, entity) => {
+        groups[entity.drawPlane].push(entity);
+        return groups;
+      },
+      { foreground: [], background: [], farBackground: [] }
+    );
+
+    entitiesByDrawPlane.farBackground.forEach((entity) => entity.render());
+    entitiesByDrawPlane.background.forEach((entity) => entity.render());
+    entitiesByDrawPlane.foreground.forEach((entity) => entity.render());
   }
 
   getEntityByType(type) {

@@ -1,6 +1,6 @@
 class Player extends Entity {
   constructor(location, collidedEvent) {
-    super(types.player);
+    super(types.player, drawPlane.foreground);
     this.initialLocation = location.copy();
     this.reset();
     this.width = 5;

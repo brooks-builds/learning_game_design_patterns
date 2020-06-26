@@ -8,6 +8,7 @@ const tree = {
   trunkHeight: 250,
   trunkWidth: 20,
   type: "tree",
+  drawPlane: drawPlane.background,
 };
 
 // // we can have different trees defined each with a prototype pointing towards treeData
@@ -16,6 +17,7 @@ const tallTree = {
   trunkHeight: 400,
   speedX: -0.5,
   type: "tallTree",
+  drawPlane: drawPlane.farBackground,
 };
 
 const treeTypes = {

@@ -1,6 +1,6 @@
 class Obstacle extends Entity {
   constructor(location) {
-    super(types.obstacle);
+    super(types.obstacle, drawPlane.foreground);
     this.initialLocation = location.copy();
     this.width = 15;
     this.height = 15;

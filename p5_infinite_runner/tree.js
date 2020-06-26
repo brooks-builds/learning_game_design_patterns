@@ -1,5 +1,6 @@
-class Tree {
+class Tree extends Entity {
   constructor(x, y, data, branchColor) {
+    super(types.tree, data.drawPlane);
     this.trunkColor = color(data.trunkRed, data.trunkGreen, data.trunkBlue);
     this.trunkLocation = createVector(x, y);
     this.trunkWidth = data.trunkWidth;
@@ -9,7 +10,7 @@ class Tree {
     this.velocity = createVector(data.speedX, data.speedY);
   }
 
-  draw() {
+  render() {
     fill(this.trunkColor);
     noStroke();
     rect(

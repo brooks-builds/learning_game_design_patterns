@@ -31,6 +31,10 @@ function draw() {
     gameState.setRunSpeed = gameState.getRunSpeed.x - 0.1;
     isPlayerHittingAnObstacle(world);
     didWeScore(world);
+    if (random() > 0.99) {
+      const tree = createTree();
+      world.registerEntity(tree);
+    }
   } else if (gameState.running == false) {
     textSize(30);
     const gameOverText = "Game Over";
@@ -128,4 +132,19 @@ function increaseSpeed(world) {
   world.getEntityByType(types.obstacle).forEach((obstacle) => {
     obstacle.increaseSpeed();
   });
+}
+
+function createTree() {
+  const treeTypes = ["tree", "tallTree"];
+  const treeData = createTreeData(random(treeTypes));
+  const green = random(50, 150);
+  const treeAlpha = random(1, 10);
+  const treeColor = color(0, green, 0, alpha);
+  return new Tree(
+    width + treeData.trunkWidth + treeData.branchSize,
+    height - treeData.trunkHeight,
+    treeData,
+    treeColor,
+    treeAlpha
+  );
 }
