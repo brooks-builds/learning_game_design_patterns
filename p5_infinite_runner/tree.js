@@ -37,7 +37,7 @@ class Tree extends Entity {
     this.trunkLocation.add(this.velocity);
   }
 
-  isOffScreen() {
+  get isDead() {
     return this.trunkLocation.x + this.trunkWidth + this.branchesSize < 0;
   }
 

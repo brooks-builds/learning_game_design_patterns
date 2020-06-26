@@ -74,4 +74,8 @@ class World {
   getEntityByType(type) {
     return this.entities.filter((entity) => entity.type == type);
   }
+
+  removeDeadEntities() {
+    this.entities = this.entities.filter((entity) => !entity.isDead);
+  }
 }

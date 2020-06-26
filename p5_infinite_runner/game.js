@@ -35,6 +35,8 @@ function draw() {
       const tree = createTree();
       world.registerEntity(tree);
     }
+    world.removeDeadEntities();
+    console.log(world.entities.length);
   } else if (gameState.running == false) {
     textSize(30);
     const gameOverText = "Game Over";
@@ -94,7 +96,7 @@ function isPlayerHittingAnObstacle(world) {
       player.location.y < obstacle.location.y + obstacle.height &&
       player.location.y + player.height > obstacle.location.y
     ) {
-      player.collidedEvent.notify(player, COLLIDE_WITH_OBSTACLE);
+      // player.collidedEvent.notify(player, COLLIDE_WITH_OBSTACLE);
     }
   });
 }
