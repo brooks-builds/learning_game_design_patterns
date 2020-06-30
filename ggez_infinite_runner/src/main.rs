@@ -2,7 +2,8 @@
 
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::ContextBuilder;
-use ggez_infinite_runner::{run, MyGame};
+use ggez_infinite_runner::game_loop::run;
+use ggez_infinite_runner::MyGame;
 
 fn main() {
     // Make a Context.
