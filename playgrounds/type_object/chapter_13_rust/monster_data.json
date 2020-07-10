@@ -1,0 +1,12 @@
+{
+  "troll": {
+    "parent": "",
+    "health": 45,
+    "attack": "the troll hits you in the head"
+  },
+  "cave_troll": {
+    "parent": "troll",
+    "health": 0,
+    "attack": "the cave troll swipes a grimy hand at you"
+  }
+}
