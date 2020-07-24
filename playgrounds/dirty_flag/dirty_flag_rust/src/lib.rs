@@ -39,24 +39,28 @@ impl GameState {
             Some(cap_mesh),
             Box::new(CapUpdate {}),
             Point2::new(0.0, 0.0),
-            false,
+            PhysicsComponent::new(false),
         );
         let rocket_engine = GraphNode::new(
             Some(flame_mesh),
             Box::new(RocketEngineUpdate {}),
             Point2::new(0.0, 0.0),
-            false,
+            PhysicsComponent::new(false),
         );
         let mut rocket_body = GraphNode::new(
             Some(rocket_body_mesh),
             Box::new(RocketUpdate::new()),
             Point2::new(screen_width / 2.0 - 5.0, screen_height - 50.0),
-            true,
+            PhysicsComponent::new(true),
         );
         rocket_body.children.push(rocket_engine);
         rocket_body.children.push(cap);
-        let mut scene_graph =
-            GraphNode::new(None, Box::new(SceneUpdate {}), Point2::new(0.0, 0.0), false);
+        let mut scene_graph = GraphNode::new(
+            None,
+            Box::new(SceneUpdate {}),
+            Point2::new(0.0, 0.0),
+            PhysicsComponent::new(false),
+        );
         scene_graph.children.push(rocket_body);
         Ok(GameState { scene_graph })
     }
@@ -80,27 +84,18 @@ impl EventHandler for GameState {
 #[derive(Clone, Copy)]
 struct Transform {
     pub location: Point2<f32>,
-    velocity: Point2<f32>,
-    acceleration: Point2<f32>,
 }
 
 impl Transform {
     pub fn origin() -> Transform {
         Transform {
             location: Point2::new(0.0, 0.0),
-            velocity: Point2::new(0.0, 0.0),
-            acceleration: Point2::new(0.0, 0.0),
         }
     }
 
     pub fn combine(&mut self, other: &Transform) {
         self.location.x += other.location.x;
         self.location.y += other.location.y;
-    }
-
-    pub fn apply_force(&mut self, force: Point2<f32>) {
-        self.acceleration.x += force.x;
-        self.acceleration.y += force.y;
     }
 }
 
@@ -109,7 +104,7 @@ struct GraphNode {
     pub local: Transform,
     pub children: Vec<GraphNode>,
     update: Box<dyn Update>,
-    is_affected_by_gravity: bool,
+    physics: PhysicsComponent,
 }
 
 impl GraphNode {
@@ -117,7 +112,7 @@ impl GraphNode {
         mesh: Option<Mesh>,
         update: Box<dyn Update>,
         location: Point2<f32>,
-        is_affected_by_gravity: bool,
+        physics: PhysicsComponent,
     ) -> GraphNode {
         let mut local = Transform::origin();
         local.location = location;
@@ -126,7 +121,7 @@ impl GraphNode {
             local,
             children: vec![],
             update,
-            is_affected_by_gravity,
+            physics,
         }
     }
 
@@ -143,9 +138,9 @@ impl GraphNode {
     }
 
     pub fn run(&mut self) {
-        self.update.update(&mut self.local);
+        self.update.update(&mut self.local, &mut self.physics);
+        self.physics.run(&mut self.local);
         for child in &mut self.children {
-            self.local.apply_force(Point2::new(0.0, GRAVITY));
             child.run();
         }
     }
@@ -156,13 +151,13 @@ fn render_mesh(mesh: &Mesh, transform: &Transform, context: &mut Context) -> Gam
 }
 
 trait Update {
-    fn update(&mut self, transform: &mut Transform);
+    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent);
 }
 
 struct SceneUpdate {}
 
 impl Update for SceneUpdate {
-    fn update(&mut self, _transform: &mut Transform) {}
+    fn update(&mut self, _transform: &mut Transform, physics: &mut PhysicsComponent) {}
 }
 
 struct RocketUpdate {
@@ -173,33 +168,25 @@ struct RocketUpdate {
 impl RocketUpdate {
     pub fn new() -> RocketUpdate {
         RocketUpdate {
-            fuel: 20,
+            fuel: 15,
             upward_movement_force: Point2::new(0.0, -1.5),
         }
     }
 }
 
 impl Update for RocketUpdate {
-    fn update(&mut self, transform: &mut Transform) {
+    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {
         if self.fuel > 0 {
-            transform.apply_force(self.upward_movement_force);
+            physics.apply_force(self.upward_movement_force);
             self.fuel -= 1;
         }
-
-        transform.velocity.x += transform.acceleration.x;
-        transform.velocity.y += transform.acceleration.y;
-        transform.location.x += transform.velocity.x;
-        transform.location.y += transform.velocity.y;
-
-        transform.acceleration.x = 0.0;
-        transform.acceleration.y = 0.0;
     }
 }
 
 struct RocketEngineUpdate {}
 
 impl Update for RocketEngineUpdate {
-    fn update(&mut self, transform: &mut Transform) {
+    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {
         // have engine move up and down based on time
     }
 }
@@ -207,5 +194,41 @@ impl Update for RocketEngineUpdate {
 struct CapUpdate {}
 
 impl Update for CapUpdate {
-    fn update(&mut self, transform: &mut Transform) {}
+    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {}
+}
+
+struct PhysicsComponent {
+    velocity: Point2<f32>,
+    acceleration: Point2<f32>,
+    is_affected_by_gravity: bool,
+    gravity: Point2<f32>,
+}
+
+impl PhysicsComponent {
+    pub fn new(is_affected_by_gravity: bool) -> PhysicsComponent {
+        PhysicsComponent {
+            velocity: Point2::new(0.0, 0.0),
+            acceleration: Point2::new(0.0, 0.0),
+            is_affected_by_gravity,
+            gravity: Point2::new(0.0, GRAVITY),
+        }
+    }
+
+    pub fn apply_force(&mut self, force: Point2<f32>) {
+        self.acceleration.x += force.x;
+        self.acceleration.y += force.y;
+    }
+
+    pub fn run(&mut self, transform: &mut Transform) {
+        if self.is_affected_by_gravity {
+            self.apply_force(self.gravity);
+        }
+
+        self.velocity.x += self.acceleration.x;
+        self.velocity.y += self.acceleration.y;
+        transform.location.x += self.velocity.x;
+        transform.location.y += self.velocity.y;
+        self.acceleration.x = 0.0;
+        self.acceleration.y = 0.0;
+    }
 }
