@@ -39,19 +39,19 @@ impl GameState {
             Some(cap_mesh),
             Box::new(CapUpdate {}),
             Point2::new(0.0, 0.0),
-            PhysicsComponent::new(false),
+            PhysicsComponent::new(false, true),
         );
         let rocket_engine = GraphNode::new(
             Some(flame_mesh),
             Box::new(RocketEngineUpdate {}),
             Point2::new(0.0, 0.0),
-            PhysicsComponent::new(false),
+            PhysicsComponent::new(false, false),
         );
         let mut rocket_body = GraphNode::new(
             Some(rocket_body_mesh),
             Box::new(RocketUpdate::new()),
             Point2::new(screen_width / 2.0 - 5.0, screen_height - 50.0),
-            PhysicsComponent::new(true),
+            PhysicsComponent::new(true, false),
         );
         rocket_body.children.push(rocket_engine);
         rocket_body.children.push(cap);
@@ -59,7 +59,7 @@ impl GameState {
             None,
             Box::new(SceneUpdate {}),
             Point2::new(0.0, 0.0),
-            PhysicsComponent::new(false),
+            PhysicsComponent::new(false, false),
         );
         scene_graph.children.push(rocket_body);
         Ok(GameState { scene_graph })
@@ -138,7 +138,8 @@ impl GraphNode {
     }
 
     pub fn run(&mut self) {
-        self.update.update(&mut self.local, &mut self.physics);
+        self.update
+            .update(&mut self.local, &mut self.physics, &mut self.children);
         self.physics.run(&mut self.local);
         for child in &mut self.children {
             child.run();
@@ -151,13 +152,24 @@ fn render_mesh(mesh: &Mesh, transform: &Transform, context: &mut Context) -> Gam
 }
 
 trait Update {
-    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent);
+    fn update(
+        &mut self,
+        transform: &mut Transform,
+        physics: &mut PhysicsComponent,
+        children: &mut Vec<GraphNode>,
+    );
 }
 
 struct SceneUpdate {}
 
 impl Update for SceneUpdate {
-    fn update(&mut self, _transform: &mut Transform, physics: &mut PhysicsComponent) {}
+    fn update(
+        &mut self,
+        _transform: &mut Transform,
+        physics: &mut PhysicsComponent,
+        children: &mut Vec<GraphNode>,
+    ) {
+    }
 }
 
 struct RocketUpdate {
@@ -175,10 +187,24 @@ impl RocketUpdate {
 }
 
 impl Update for RocketUpdate {
-    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {
+    fn update(
+        &mut self,
+        transform: &mut Transform,
+        physics: &mut PhysicsComponent,
+        children: &mut Vec<GraphNode>,
+    ) {
         if self.fuel > 0 {
             physics.apply_force(self.upward_movement_force);
             self.fuel -= 1;
+        } else {
+            // release the cap and give it a upwards force equal to our velocity
+            for child in children {
+                if child.physics.launchable {
+                    child.physics.apply_force(physics.velocity);
+                    child.physics.is_affected_by_gravity = true;
+                    child.physics.launchable = false;
+                }
+            }
         }
     }
 }
@@ -186,7 +212,12 @@ impl Update for RocketUpdate {
 struct RocketEngineUpdate {}
 
 impl Update for RocketEngineUpdate {
-    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {
+    fn update(
+        &mut self,
+        transform: &mut Transform,
+        physics: &mut PhysicsComponent,
+        children: &mut Vec<GraphNode>,
+    ) {
         // have engine move up and down based on time
     }
 }
@@ -194,23 +225,31 @@ impl Update for RocketEngineUpdate {
 struct CapUpdate {}
 
 impl Update for CapUpdate {
-    fn update(&mut self, transform: &mut Transform, physics: &mut PhysicsComponent) {}
+    fn update(
+        &mut self,
+        transform: &mut Transform,
+        physics: &mut PhysicsComponent,
+        children: &mut Vec<GraphNode>,
+    ) {
+    }
 }
 
 struct PhysicsComponent {
-    velocity: Point2<f32>,
+    pub velocity: Point2<f32>,
     acceleration: Point2<f32>,
     is_affected_by_gravity: bool,
     gravity: Point2<f32>,
+    pub launchable: bool,
 }
 
 impl PhysicsComponent {
-    pub fn new(is_affected_by_gravity: bool) -> PhysicsComponent {
+    pub fn new(is_affected_by_gravity: bool, launchable: bool) -> PhysicsComponent {
         PhysicsComponent {
             velocity: Point2::new(0.0, 0.0),
             acceleration: Point2::new(0.0, 0.0),
             is_affected_by_gravity,
             gravity: Point2::new(0.0, GRAVITY),
+            launchable,
         }
     }
 
