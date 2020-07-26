@@ -7,6 +7,7 @@ const GRAVITY: f32 = 0.5;
 
 pub struct GameState {
     scene_graph: GraphNode,
+    events: Vec<Events>,
 }
 
 impl GameState {
@@ -62,13 +63,16 @@ impl GameState {
             PhysicsComponent::new(false, false),
         );
         scene_graph.children.push(rocket_body);
-        Ok(GameState { scene_graph })
+        Ok(GameState {
+            scene_graph,
+            events: vec![],
+        })
     }
 }
 
 impl EventHandler for GameState {
     fn update(&mut self, _context: &mut Context) -> GameResult {
-        self.scene_graph.run();
+        self.scene_graph.run(&mut self.events);
         Ok(())
     }
 
@@ -137,12 +141,17 @@ impl GraphNode {
         Ok(())
     }
 
-    pub fn run(&mut self) {
-        self.update
-            .update(&mut self.local, &mut self.physics, &mut self.children);
+    pub fn run(&mut self, events: &mut Vec<Events>) {
+        self.update.update(
+            &mut self.local,
+            &mut self.physics,
+            &mut self.children,
+            events,
+            &mut self.mesh,
+        );
         self.physics.run(&mut self.local);
         for child in &mut self.children {
-            child.run();
+            child.run(events);
         }
     }
 }
@@ -157,6 +166,8 @@ trait Update {
         transform: &mut Transform,
         physics: &mut PhysicsComponent,
         children: &mut Vec<GraphNode>,
+        events: &mut Vec<Events>,
+        mesh: &mut Option<Mesh>,
     );
 }
 
@@ -168,6 +179,8 @@ impl Update for SceneUpdate {
         _transform: &mut Transform,
         physics: &mut PhysicsComponent,
         children: &mut Vec<GraphNode>,
+        events: &mut Vec<Events>,
+        mesh: &mut Option<Mesh>,
     ) {
     }
 }
@@ -175,6 +188,7 @@ impl Update for SceneUpdate {
 struct RocketUpdate {
     fuel: u8,
     upward_movement_force: Point2<f32>,
+    did_run_out_of_fuel: bool,
 }
 
 impl RocketUpdate {
@@ -182,6 +196,7 @@ impl RocketUpdate {
         RocketUpdate {
             fuel: 15,
             upward_movement_force: Point2::new(0.0, -1.5),
+            did_run_out_of_fuel: false,
         }
     }
 }
@@ -189,15 +204,17 @@ impl RocketUpdate {
 impl Update for RocketUpdate {
     fn update(
         &mut self,
-        transform: &mut Transform,
+        _transform: &mut Transform,
         physics: &mut PhysicsComponent,
         children: &mut Vec<GraphNode>,
+        events: &mut Vec<Events>,
+        _mesh: &mut Option<Mesh>,
     ) {
         if self.fuel > 0 {
             physics.apply_force(self.upward_movement_force);
             self.fuel -= 1;
-        } else {
-            // release the cap and give it a upwards force equal to our velocity
+        } else if self.fuel == 0 && !self.did_run_out_of_fuel {
+            events.push(Events::EngineOff);
             for child in children {
                 if child.physics.launchable {
                     child.physics.apply_force(physics.velocity);
@@ -205,6 +222,7 @@ impl Update for RocketUpdate {
                     child.physics.launchable = false;
                 }
             }
+            self.did_run_out_of_fuel = true;
         }
     }
 }
@@ -214,11 +232,24 @@ struct RocketEngineUpdate {}
 impl Update for RocketEngineUpdate {
     fn update(
         &mut self,
-        transform: &mut Transform,
-        physics: &mut PhysicsComponent,
-        children: &mut Vec<GraphNode>,
+        _transform: &mut Transform,
+        _physics: &mut PhysicsComponent,
+        _children: &mut Vec<GraphNode>,
+        events: &mut Vec<Events>,
+        mesh: &mut Option<Mesh>,
     ) {
-        // have engine move up and down based on time
+        let mut index_to_remove = None;
+        for (index, event) in events.iter().enumerate() {
+            if let Events::EngineOff = event {
+                println!("turning engine off");
+                *mesh = None;
+                index_to_remove = Some(index);
+            }
+        }
+
+        if let Some(index) = index_to_remove {
+            events.remove(index);
+        }
     }
 }
 
@@ -230,6 +261,8 @@ impl Update for CapUpdate {
         transform: &mut Transform,
         physics: &mut PhysicsComponent,
         children: &mut Vec<GraphNode>,
+        events: &mut Vec<Events>,
+        mesh: &mut Option<Mesh>,
     ) {
     }
 }
@@ -270,4 +303,9 @@ impl PhysicsComponent {
         self.acceleration.x = 0.0;
         self.acceleration.y = 0.0;
     }
+}
+
+enum Events {
+    Nothing,
+    EngineOff,
 }
