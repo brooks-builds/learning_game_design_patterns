@@ -1,17 +1,37 @@
 use ggez::event::EventHandler;
 use ggez::graphics::{Color, DrawMode, DrawParam, Mesh, MeshBuilder, Rect, BLACK, WHITE};
 use ggez::nalgebra::Point2;
-use ggez::{graphics, Context, GameResult};
+use ggez::{graphics, timer, Context, GameResult};
+use rand::prelude::*;
 
 const GRAVITY: f32 = 0.5;
+const ROCKET_FUEL: u32 = 50;
+const TERMINAL_VELOCITY_Y: f32 = 3.0;
 
 pub struct GameState {
     scene_graph: GraphNode,
     events: Vec<Events>,
+    rng: ThreadRng,
 }
 
 impl GameState {
-    pub fn new(context: &mut Context) -> GameResult<GameState> {
+    pub fn new(_context: &mut Context) -> GameResult<GameState> {
+        let rng = rand::thread_rng();
+        let scene_graph = GraphNode::new(
+            None,
+            Box::new(SceneUpdate {}),
+            Point2::new(0.0, 0.0),
+            PhysicsComponent::new(false, false),
+            GameObjectTypes::Scene,
+        );
+        Ok(GameState {
+            scene_graph,
+            events: vec![],
+            rng,
+        })
+    }
+
+    fn add_rocket(&mut self, context: &mut Context) -> GameResult<()> {
         let (screen_width, screen_height) = graphics::drawable_size(context);
         let rocket_body_mesh = MeshBuilder::new()
             .rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 50.0), WHITE)
@@ -53,29 +73,25 @@ impl GameState {
         let mut rocket_body = GraphNode::new(
             Some(rocket_body_mesh),
             Box::new(RocketUpdate::new()),
-            Point2::new(screen_width / 2.0 - 5.0, screen_height - 50.0),
+            Point2::new(
+                self.rng.gen_range(0.0, screen_width - 10.0),
+                screen_height + 3.0,
+            ),
             PhysicsComponent::new(true, false),
             GameObjectTypes::Rocket,
         );
         rocket_body.children.push(rocket_engine);
         rocket_body.children.push(cap);
-        let mut scene_graph = GraphNode::new(
-            None,
-            Box::new(SceneUpdate {}),
-            Point2::new(0.0, 0.0),
-            PhysicsComponent::new(false, false),
-            GameObjectTypes::Scene,
-        );
-        scene_graph.children.push(rocket_body);
-        Ok(GameState {
-            scene_graph,
-            events: vec![],
-        })
+        self.scene_graph.children.push(rocket_body);
+        Ok(())
     }
 }
 
 impl EventHandler for GameState {
-    fn update(&mut self, _context: &mut Context) -> GameResult {
+    fn update(&mut self, context: &mut Context) -> GameResult {
+        if timer::ticks(context) % 100 == 0 {
+            self.add_rocket(context)?;
+        }
         self.scene_graph.run(&mut self.events);
         Ok(())
     }
@@ -206,10 +222,10 @@ impl Update for SceneUpdate {
     fn update(
         &mut self,
         _transform: &mut Transform,
-        physics: &mut PhysicsComponent,
-        children: &mut Vec<GraphNode>,
-        events: &mut Vec<Events>,
-        mesh: &mut Option<Mesh>,
+        _physics: &mut PhysicsComponent,
+        _children: &mut Vec<GraphNode>,
+        _events: &mut Vec<Events>,
+        _mesh: &mut Option<Mesh>,
     ) {
     }
 }
@@ -224,10 +240,10 @@ struct RocketUpdate {
 impl RocketUpdate {
     pub fn new() -> RocketUpdate {
         RocketUpdate {
-            fuel: 1000,
-            upward_movement_force: Point2::new(0.0, -0.5001),
+            fuel: ROCKET_FUEL,
+            upward_movement_force: Point2::new(0.0, -0.63),
             did_run_out_of_fuel: false,
-            component_launch_velocity: Point2::new(0.0, -1.5),
+            component_launch_velocity: Point2::new(0.0, -10.5),
         }
     }
 }
@@ -249,6 +265,7 @@ impl Update for RocketUpdate {
             let mut index_of_child_to_remove = None;
             for (index, child) in children.iter_mut().enumerate() {
                 if child.physics.launchable {
+                    child.physics.velocity.y = physics.velocity.y;
                     child.physics.apply_force(self.component_launch_velocity);
                     child.physics.is_affected_by_gravity = true;
                     child.physics.launchable = false;
@@ -282,7 +299,6 @@ impl Update for RocketEngineUpdate {
         let mut index_to_remove = None;
         for (index, event) in events.iter().enumerate() {
             if let Events::EngineOff = event {
-                println!("turning engine off");
                 *mesh = None;
                 index_to_remove = Some(index);
             }
@@ -299,11 +315,11 @@ struct CapUpdate {}
 impl Update for CapUpdate {
     fn update(
         &mut self,
-        transform: &mut Transform,
-        physics: &mut PhysicsComponent,
-        children: &mut Vec<GraphNode>,
-        events: &mut Vec<Events>,
-        mesh: &mut Option<Mesh>,
+        _transform: &mut Transform,
+        _physics: &mut PhysicsComponent,
+        _children: &mut Vec<GraphNode>,
+        _events: &mut Vec<Events>,
+        _mesh: &mut Option<Mesh>,
     ) {
     }
 }
@@ -335,6 +351,9 @@ impl PhysicsComponent {
     pub fn run(&mut self, transform: &mut Transform) {
         if self.is_affected_by_gravity {
             self.apply_force(self.gravity);
+            if self.velocity.y > TERMINAL_VELOCITY_Y {
+                self.velocity.y = TERMINAL_VELOCITY_Y;
+            }
         }
 
         self.velocity.x += self.acceleration.x;
