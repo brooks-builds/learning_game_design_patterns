@@ -41,18 +41,21 @@ impl GameState {
             Box::new(CapUpdate {}),
             Point2::new(0.0, 0.0),
             PhysicsComponent::new(false, true),
+            GameObjectTypes::Cap,
         );
         let rocket_engine = GraphNode::new(
             Some(flame_mesh),
             Box::new(RocketEngineUpdate {}),
             Point2::new(0.0, 0.0),
             PhysicsComponent::new(false, false),
+            GameObjectTypes::Engine,
         );
         let mut rocket_body = GraphNode::new(
             Some(rocket_body_mesh),
             Box::new(RocketUpdate::new()),
             Point2::new(screen_width / 2.0 - 5.0, screen_height - 50.0),
             PhysicsComponent::new(true, false),
+            GameObjectTypes::Rocket,
         );
         rocket_body.children.push(rocket_engine);
         rocket_body.children.push(cap);
@@ -61,6 +64,7 @@ impl GameState {
             Box::new(SceneUpdate {}),
             Point2::new(0.0, 0.0),
             PhysicsComponent::new(false, false),
+            GameObjectTypes::Scene,
         );
         scene_graph.children.push(rocket_body);
         Ok(GameState {
@@ -85,7 +89,7 @@ impl EventHandler for GameState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Transform {
     pub location: Point2<f32>,
 }
@@ -109,6 +113,7 @@ struct GraphNode {
     pub children: Vec<GraphNode>,
     update: Box<dyn Update>,
     physics: PhysicsComponent,
+    my_type: GameObjectTypes,
 }
 
 impl GraphNode {
@@ -117,6 +122,7 @@ impl GraphNode {
         update: Box<dyn Update>,
         location: Point2<f32>,
         physics: PhysicsComponent,
+        my_type: GameObjectTypes,
     ) -> GraphNode {
         let mut local = Transform::origin();
         local.location = location;
@@ -126,6 +132,7 @@ impl GraphNode {
             children: vec![],
             update,
             physics,
+            my_type,
         }
     }
 
@@ -142,6 +149,28 @@ impl GraphNode {
     }
 
     pub fn run(&mut self, events: &mut Vec<Events>) {
+        let mut index_to_transfer = None;
+        for (index, event) in events.iter().enumerate() {
+            if let Events::TransferTo {
+                target,
+                payload: _payload,
+            } = event
+            {
+                if *target == self.my_type {
+                    index_to_transfer = Some(index);
+                }
+            }
+        }
+        if let Some(index) = index_to_transfer {
+            let game_component = events.remove(index);
+            if let Events::TransferTo {
+                target: _target,
+                payload,
+            } = game_component
+            {
+                self.children.push(payload);
+            }
+        }
         self.update.update(
             &mut self.local,
             &mut self.physics,
@@ -186,17 +215,19 @@ impl Update for SceneUpdate {
 }
 
 struct RocketUpdate {
-    fuel: u8,
+    fuel: u32,
     upward_movement_force: Point2<f32>,
     did_run_out_of_fuel: bool,
+    component_launch_velocity: Point2<f32>,
 }
 
 impl RocketUpdate {
     pub fn new() -> RocketUpdate {
         RocketUpdate {
-            fuel: 15,
-            upward_movement_force: Point2::new(0.0, -1.5),
+            fuel: 1000,
+            upward_movement_force: Point2::new(0.0, -0.5001),
             did_run_out_of_fuel: false,
+            component_launch_velocity: Point2::new(0.0, -1.5),
         }
     }
 }
@@ -204,7 +235,7 @@ impl RocketUpdate {
 impl Update for RocketUpdate {
     fn update(
         &mut self,
-        _transform: &mut Transform,
+        transform: &mut Transform,
         physics: &mut PhysicsComponent,
         children: &mut Vec<GraphNode>,
         events: &mut Vec<Events>,
@@ -215,14 +246,24 @@ impl Update for RocketUpdate {
             self.fuel -= 1;
         } else if self.fuel == 0 && !self.did_run_out_of_fuel {
             events.push(Events::EngineOff);
-            for child in children {
+            let mut index_of_child_to_remove = None;
+            for (index, child) in children.iter_mut().enumerate() {
                 if child.physics.launchable {
-                    child.physics.apply_force(physics.velocity);
+                    child.physics.apply_force(self.component_launch_velocity);
                     child.physics.is_affected_by_gravity = true;
                     child.physics.launchable = false;
+                    child.local.location = transform.location.clone();
+                    index_of_child_to_remove = Some(index);
                 }
             }
             self.did_run_out_of_fuel = true;
+            if let Some(index) = index_of_child_to_remove {
+                let child_component = children.remove(index);
+                events.push(Events::TransferTo {
+                    target: GameObjectTypes::Scene,
+                    payload: child_component,
+                });
+            }
         }
     }
 }
@@ -306,6 +347,17 @@ impl PhysicsComponent {
 }
 
 enum Events {
-    Nothing,
     EngineOff,
+    TransferTo {
+        target: GameObjectTypes,
+        payload: GraphNode,
+    },
+}
+
+#[derive(PartialEq)]
+enum GameObjectTypes {
+    Scene,
+    Rocket,
+    Cap,
+    Engine,
 }
