@@ -53,15 +53,15 @@ impl Particle {
         self.location.x += self.velocity.x;
         self.location.y += self.velocity.y;
         self.frames_left -= 1;
-        if self.red > 0.0 && self.blue == 0.0 {
+        if self.red > 0.0 && self.blue <= 0.0 {
             self.red -= 0.01;
             self.green += 0.01;
         }
-        if self.green > 0.0 && self.red == 0.0 {
+        if self.green > 0.0 && self.red <= 0.0 {
             self.green -= 0.01;
             self.blue += 0.01;
         }
-        if self.blue > 0.0 && self.green == 0.0 {
+        if self.blue > 0.0 && self.green <= 0.0 {
             self.red += 0.01;
             self.blue -= 0.01;
         }
