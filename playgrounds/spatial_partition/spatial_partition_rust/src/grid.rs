@@ -28,7 +28,6 @@ impl Grid {
         }
 
         let (screen_width, screen_height) = graphics::drawable_size(context);
-        dbg!(graphics::drawable_size(context));
         let horizontile_line_mesh = MeshBuilder::new()
             .line(
                 &[Point2::new(0.0, 0.0), Point2::new(screen_width, 0.0)],
@@ -53,7 +52,7 @@ impl Grid {
         })
     }
 
-    pub fn draw(&self, context: &mut Context) -> GameResult<()> {
+    pub fn draw(&self, context: &mut Context, unit_mesh: &Mesh) -> GameResult<()> {
         for count in 1..NUMBER_OF_CELLS {
             graphics::draw(
                 context,
@@ -67,10 +66,10 @@ impl Grid {
             )?;
         }
 
-        for x_row in &self.cells {
-            for units in x_row {
+        for (y_index, y_row) in self.cells.iter().enumerate() {
+            for (x_index, units) in y_row.iter().enumerate() {
                 for (unit_id, unit) in units {
-                    unit.draw(context)?;
+                    unit.draw(context, x_index, y_index, unit_mesh)?;
                 }
             }
         }
@@ -78,8 +77,15 @@ impl Grid {
         Ok(())
     }
 
-    pub fn add(&mut self, x: f32, y: f32, context: &mut Context) -> GameResult<()> {
-        let unit = Unit::new(x, y, context, self.next_id)?;
+    pub fn add(
+        &mut self,
+        x: f32,
+        y: f32,
+        context: &mut Context,
+        rng: &mut ThreadRng,
+        unit_radius: f32,
+    ) -> GameResult<()> {
+        let unit = Unit::new(x, y, context, self.next_id, rng, unit_radius)?;
         let cell_x = x as usize / CELL_SIZE;
         let cell_y = y as usize / CELL_SIZE;
         self.cells[cell_y][cell_x].insert(unit.id, unit);
@@ -87,14 +93,34 @@ impl Grid {
         Ok(())
     }
 
-    pub fn update(&mut self, rng: &mut ThreadRng) {
+    pub fn update(&mut self, rng: &mut ThreadRng, context: &Context) {
+        let (arena_width, arena_height) = graphics::drawable_size(context);
         let mut unit_moves = vec![];
-        for y_row in &mut self.cells {
-            for units in y_row {
+        for (y_index, y_row) in &mut self.cells.iter_mut().enumerate() {
+            for (x_index, units) in y_row.iter_mut().enumerate() {
+                let cloned_units = units.clone();
                 for (unit_id, unit) in units {
                     // this will potentially change the position of the unit
-                    let unit_move = unit.update(rng);
-                    unit_moves.push(unit_move);
+                    unit.update();
+                    if y_index == 0 {
+                        unit.collide_with_top_wall();
+                    } else if y_index == NUMBER_OF_CELLS - 1 {
+                        unit.collide_with_bottom_wall(arena_height);
+                    }
+                    if x_index == 0 {
+                        unit.collide_with_left_wall();
+                    } else if x_index == NUMBER_OF_CELLS - 1 {
+                        unit.collide_with_right_wall(arena_width);
+                    }
+
+                    // have unit collide with each other
+                    for (cloned_unit_index, cloned_unit) in &cloned_units {
+                        if unit_id == cloned_unit_index {
+                            continue;
+                        }
+                        unit.handle_collision(cloned_unit);
+                    }
+                    unit_moves.push(unit.get_move());
                 }
             }
         }
@@ -108,7 +134,7 @@ impl Grid {
             let new_x = unit_moving.new_x as usize / CELL_SIZE;
             let new_y = unit_moving.new_y as usize / CELL_SIZE;
             if old_x == new_x && old_y == new_y {
-                return;
+                continue;
             }
             let unit = self.cells[old_y][old_x].remove(&unit_moving.unit_id);
             let random_color = Color::new(

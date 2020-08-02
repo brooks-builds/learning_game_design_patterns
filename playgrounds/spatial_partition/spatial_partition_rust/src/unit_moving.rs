@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct UnitMoving {
     pub old_x: f32,
     pub old_y: f32,
