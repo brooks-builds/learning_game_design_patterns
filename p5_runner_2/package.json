@@ -1,0 +1,16 @@
+{
+  "name": "p5_runner_2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "light-server -s . -p 7000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "light-server": "^2.8.0"
+  }
+}
