@@ -9,7 +9,7 @@ class Grid {
     for (let yCount = 0; yCount < this.verticalCount; yCount += 1) {
       const yCells = [];
       for (let xCount = 0; xCount < this.horizontileCount; xCount += 1) {
-        yCells.push({});
+        yCells.push([]);
       }
       this.cells.push(yCells);
     }
@@ -24,5 +24,15 @@ class Grid {
         line(xIndex * this.cellWidth, 0, xIndex * this.cellWidth, height);
       });
     });
+  }
+
+  add(gameObject) {
+    const xIndex = Math.floor(gameObject.centerLocation.x / this.cellWidth);
+    const yIndex = Math.floor(gameObject.centerLocation.y / this.cellHeight);
+    this.cells[yIndex][xIndex].push(GameObject);
+  }
+
+  draw() {
+    this.cells[5][1].forEach((gameObject) => gameObject.draw());
   }
 }
