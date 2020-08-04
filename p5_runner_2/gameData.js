@@ -23,6 +23,7 @@ const gameData = {
     "floor",
     "floor",
     "floor",
+    "floor",
     "end",
   ],
 };

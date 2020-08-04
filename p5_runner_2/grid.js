@@ -5,6 +5,8 @@ class Grid {
     this.cellWidth = cellSize;
     this.cellHeight = cellSize;
     this.cells = [];
+    this.offScreenLeft = [];
+    this.offScreenRight = [];
 
     for (let yCount = 0; yCount < this.verticalCount; yCount += 1) {
       const yCells = [];
@@ -29,7 +31,13 @@ class Grid {
   add(gameObject) {
     const xIndex = Math.floor(gameObject.location.x / this.cellWidth);
     const yIndex = Math.floor(gameObject.location.y / this.cellHeight);
-    this.cells[yIndex][xIndex].push(gameObject);
+    if (xIndex < 0) {
+      this.offScreenLeft.push(gameObject);
+    } else if (xIndex >= this.cells[0].length) {
+      this.offScreenRight.push(gameObject);
+    } else {
+      this.cells[yIndex][xIndex].push(gameObject);
+    }
   }
 
   draw() {
@@ -38,5 +46,15 @@ class Grid {
         gameObjects.forEach((gameObject) => gameObject.draw());
       });
     });
+  }
+
+  update() {
+    this.offScreenLeft.forEach((gameObject) => gameObject.update());
+    this.cells.forEach((xCells) => {
+      xCells.forEach((gameObjects) => {
+        gameObjects.forEach((gameObject) => gameObject.update());
+      });
+    });
+    this.offScreenRight.forEach((gameObject) => gameObject.update);
   }
 }

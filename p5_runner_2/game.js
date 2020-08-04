@@ -13,6 +13,7 @@ function setup() {
 function draw() {
   background("black");
   grid.drawGrid();
+  grid.update();
   grid.draw();
 }
 
