@@ -2,6 +2,7 @@ const gameData = {
   cellSize: 50.0,
   screenWidth: 1000,
   screenHeight: 500,
+  floorY: 400,
   level: [
     "floor",
     "floor",

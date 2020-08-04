@@ -1,18 +1,56 @@
 let grid;
-let floorObject;
 
 function setup() {
   createCanvas(gameData.screenWidth, gameData.screenHeight);
 
-  floorObject = new GameObject(
-    50,
-    250,
-    gameData.cellSize,
-    gameData.cellSize,
-    new DrawFloor()
-  );
   grid = new Grid(gameData.cellSize);
-  grid.add(floorObject);
+
+  gameData.level.forEach((cell, index) => {
+    if (cell === "floor") {
+      const floorObject = new GameObject(
+        index * gameData.cellSize,
+        gameData.floorY,
+        gameData.cellSize,
+        gameData.cellSize,
+        new DrawFloor()
+      );
+      grid.add(floorObject);
+    } else if (cell === "start") {
+      const floorObject = new GameObject(
+        index * gameData.cellSize,
+        gameData.floorY,
+        gameData.cellSize,
+        gameData.cellSize,
+        new DrawFloor()
+      );
+      const startObject = new GameObject(
+        index * gameData.cellSize + gameData.cellSize - 5,
+        gameData.floorY - gameData.cellSize,
+        5,
+        gameData.cellSize,
+        new DrawStart()
+      );
+      grid.add(floorObject);
+      grid.add(startObject);
+    } else if (cell == "spikeUp") {
+      const floorObject = new GameObject(
+        index * gameData.cellSize,
+        gameData.floorY,
+        gameData.cellSize,
+        gameData.cellSize,
+        new DrawFloor()
+      );
+      const spikeObject = new GameObject(
+        index * gameData.cellSize,
+        gameData.floorY - gameData.cellSize,
+        gameData.cellSize,
+        gameData.cellSize,
+        new DrawSpike()
+      );
+      grid.add(floorObject);
+      grid.add(spikeObject);
+    }
+  });
 }
 
 function draw() {

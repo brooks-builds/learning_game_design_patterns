@@ -27,12 +27,16 @@ class Grid {
   }
 
   add(gameObject) {
-    const xIndex = Math.floor(gameObject.centerLocation.x / this.cellWidth);
-    const yIndex = Math.floor(gameObject.centerLocation.y / this.cellHeight);
-    this.cells[yIndex][xIndex].push(GameObject);
+    const xIndex = Math.floor(gameObject.location.x / this.cellWidth);
+    const yIndex = Math.floor(gameObject.location.y / this.cellHeight);
+    this.cells[yIndex][xIndex].push(gameObject);
   }
 
   draw() {
-    this.cells[5][1].forEach((gameObject) => gameObject.draw());
+    this.cells.forEach((xCells) => {
+      xCells.forEach((gameObjects) => {
+        gameObjects.forEach((gameObject) => gameObject.draw());
+      });
+    });
   }
 }
