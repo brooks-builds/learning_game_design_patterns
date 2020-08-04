@@ -6,50 +6,7 @@ function setup() {
   grid = new Grid(gameData.cellSize);
 
   gameData.level.forEach((cell, index) => {
-    if (cell === "floor") {
-      const floorObject = new GameObject(
-        index * gameData.cellSize,
-        gameData.floorY,
-        gameData.cellSize,
-        gameData.cellSize,
-        new DrawFloor()
-      );
-      grid.add(floorObject);
-    } else if (cell === "start") {
-      const floorObject = new GameObject(
-        index * gameData.cellSize,
-        gameData.floorY,
-        gameData.cellSize,
-        gameData.cellSize,
-        new DrawFloor()
-      );
-      const startObject = new GameObject(
-        index * gameData.cellSize + gameData.cellSize - 5,
-        gameData.floorY - gameData.cellSize,
-        5,
-        gameData.cellSize,
-        new DrawStart()
-      );
-      grid.add(floorObject);
-      grid.add(startObject);
-    } else if (cell == "spikeUp") {
-      const floorObject = new GameObject(
-        index * gameData.cellSize,
-        gameData.floorY,
-        gameData.cellSize,
-        gameData.cellSize,
-        new DrawFloor()
-      );
-      const spikeObject = new GameObject(
-        index * gameData.cellSize,
-        gameData.floorY - gameData.cellSize,
-        gameData.cellSize,
-        gameData.cellSize,
-        new DrawSpike()
-      );
-      grid.add(floorObject);
-      grid.add(spikeObject);
-    }
+    buildLevel[cell](index * gameData.cellSize, gameData.floorY, grid);
   });
 }
 
@@ -58,3 +15,54 @@ function draw() {
   grid.drawGrid();
   grid.draw();
 }
+
+const buildLevel = {
+  floor(x, y, grid) {
+    const floor = new GameObject(
+      x,
+      y,
+      gameData.cellSize,
+      gameData.cellSize,
+      new DrawFloor()
+    );
+    grid.add(floor);
+  },
+
+  start(x, y, grid) {
+    this.floor(x, y, grid);
+    const start = new GameObject(
+      x + gameData.cellSize - 5,
+      y - gameData.cellSize,
+      5,
+      gameData.cellSize,
+      new DrawStart()
+    );
+    grid.add(start);
+  },
+
+  spikeUp(x, y, grid) {
+    this.floor(x, y, grid);
+    const spike = new GameObject(
+      x,
+      y - gameData.cellSize,
+      gameData.cellSize,
+      gameData.cellSize,
+      new DrawSpike()
+    );
+    grid.add(spike);
+  },
+
+  space() {},
+
+  end(x, y, grid) {
+    this.floor(x, y, grid);
+    const end = new GameObject(
+      x,
+      y - gameData.cellSize,
+      5,
+      gameData.cellSize,
+      new DrawEnd()
+    );
+    grid.add(end);
+  },
+};

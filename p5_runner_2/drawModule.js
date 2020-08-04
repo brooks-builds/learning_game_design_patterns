@@ -37,3 +37,14 @@ class DrawSpike {
     );
   }
 }
+
+class DrawEnd {
+  constructor() {
+    this.color = color("green");
+  }
+
+  draw(location, width, height) {
+    fill(this.color);
+    rect(location.x, location.y, width, height);
+  }
+}
