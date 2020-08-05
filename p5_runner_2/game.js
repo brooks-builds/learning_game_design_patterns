@@ -1,9 +1,17 @@
 let grid;
 let nextObjectId;
+let camera;
+
+// next time
+// stop every static object from moving
+// have the camera draw everying on the screen
+// update the camera
+// move objects around on the grid based on the cameras position
 
 function setup() {
   createCanvas(gameData.screenWidth, gameData.screenHeight);
 
+  camera = new Camera(createVector(0, 0), createVector(1, 0), width, height);
   nextObjectId = 0;
   grid = new Grid(gameData.cellSize);
 
