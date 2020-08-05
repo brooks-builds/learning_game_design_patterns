@@ -1,5 +1,6 @@
 class GameObject {
   constructor(
+    id,
     x,
     y,
     width = gameData.cellSize,
@@ -12,6 +13,7 @@ class GameObject {
     this.height = height;
     this.drawModule = drawModule;
     this.velocity = velocity;
+    this.id = id;
   }
 
   draw() {

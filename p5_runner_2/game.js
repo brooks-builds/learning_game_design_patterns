@@ -1,8 +1,10 @@
 let grid;
+let nextObjectId;
 
 function setup() {
   createCanvas(gameData.screenWidth, gameData.screenHeight);
 
+  nextObjectId = 0;
   grid = new Grid(gameData.cellSize);
 
   gameData.level.forEach((cell, index) => {
@@ -20,6 +22,7 @@ function draw() {
 const buildLevel = {
   floor(x, y, grid) {
     const floor = new GameObject(
+      nextObjectId,
       x,
       y,
       gameData.cellSize,
@@ -27,11 +30,13 @@ const buildLevel = {
       new DrawFloor()
     );
     grid.add(floor);
+    nextObjectId += 1;
   },
 
   start(x, y, grid) {
     this.floor(x, y, grid);
     const start = new GameObject(
+      nextObjectId,
       x + gameData.cellSize - 5,
       y - gameData.cellSize,
       5,
@@ -39,11 +44,13 @@ const buildLevel = {
       new DrawStart()
     );
     grid.add(start);
+    nextObjectId += 1;
   },
 
   spikeUp(x, y, grid) {
     this.floor(x, y, grid);
     const spike = new GameObject(
+      nextObjectId,
       x,
       y - gameData.cellSize,
       gameData.cellSize,
@@ -51,6 +58,7 @@ const buildLevel = {
       new DrawSpike()
     );
     grid.add(spike);
+    nextObjectId += 1;
   },
 
   space() {},
@@ -58,6 +66,7 @@ const buildLevel = {
   end(x, y, grid) {
     this.floor(x, y, grid);
     const end = new GameObject(
+      nextObjectId,
       x,
       y - gameData.cellSize,
       5,
@@ -65,5 +74,6 @@ const buildLevel = {
       new DrawEnd()
     );
     grid.add(end);
+    nextObjectId += 1;
   },
 };
