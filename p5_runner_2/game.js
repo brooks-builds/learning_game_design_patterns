@@ -1,12 +1,16 @@
 let grid;
 let nextObjectId;
 let camera;
+let state;
+let startGameEvent;
 
 function setup() {
   createCanvas(gameData.cameraWidth, gameData.cameraHeight);
 
+  state = gameState.notStarted;
   const playerMovedEvent = new EventSystem();
   const gameObjectMovedIntoNewCellEvent = new EventSystem();
+  startGameEvent = new EventSystem();
 
   grid = new Grid(
     gameData.cellSize,
@@ -23,7 +27,11 @@ function setup() {
     gameData.player.bodyHeight,
     new DrawPlayer(),
     "player",
-    new PlayerPhysics(playerMovedEvent, gameObjectMovedIntoNewCellEvent)
+    new PlayerPhysics(
+      playerMovedEvent,
+      gameObjectMovedIntoNewCellEvent,
+      startGameEvent
+    )
   );
   nextObjectId += 1;
   grid.add(player);
@@ -40,6 +48,15 @@ function draw() {
   grid.update();
   camera.update();
   camera.draw(grid);
+  textSize(36);
+  fill("white");
+  text("Press RETURN to begin", width / 2 - 175, height / 2);
+}
+
+function keyPressed() {
+  if (keyCode === ENTER && state === gameState.notStarted) {
+    startGameEvent.notify(events.startingGame);
+  }
 }
 
 const buildLevel = {
@@ -103,4 +120,11 @@ const buildLevel = {
     grid.add(end);
     nextObjectId += 1;
   },
+};
+
+const gameState = {
+  notStarted: "not started",
+  playing: "playing",
+  won: "won",
+  died: "died",
 };

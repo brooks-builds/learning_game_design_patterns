@@ -1,11 +1,12 @@
 class PlayerPhysics {
-  constructor(movedEvent, movedIntoNewCellEvent) {
+  constructor(movedEvent, movedIntoNewCellEvent, startGameEvent) {
     this.velocity = createVector(gameData.player.speed, 0);
     this.movedEvent = movedEvent;
-    this.moving = true;
+    this.moving = false;
     movedIntoNewCellEvent.registerListener(
       this.movedIntoNewCellEvent.bind(this)
     );
+    startGameEvent.registerListener(this.startGameEvent.bind(this));
   }
 
   update(location) {
@@ -23,6 +24,10 @@ class PlayerPhysics {
     for (let objectId in currentCell) {
       if (currentCell[objectId].type === "end") this.moving = false;
     }
+  }
+
+  startGameEvent(event) {
+    this.moving = true;
   }
 }
 
