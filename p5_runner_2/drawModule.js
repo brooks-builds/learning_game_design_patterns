@@ -48,3 +48,19 @@ class DrawEnd {
     rect(location.x, location.y, width, height);
   }
 }
+
+class DrawPlayer {
+  constructor() {
+    this.color = color("white");
+  }
+
+  draw(location, width, height) {
+    fill(this.color);
+    ellipse(
+      location.x + width / 2,
+      location.y - gameData.player.headSize / 2,
+      gameData.player.headSize
+    );
+    rect(location.x, location.y, width, height);
+  }
+}

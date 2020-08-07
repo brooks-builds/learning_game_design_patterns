@@ -1,8 +1,31 @@
 class Camera {
-  constructor(location, velocity = createVector(1, 0), width, height) {
-    this.location = location;
-    this.velocity = velocity;
+  constructor(x = 0, y = 0, width, height, playerMovedEvent) {
+    this.location = createVector(x, y);
     this.width = width;
     this.height = height;
+    playerMovedEvent.registerListener(this.onNotifyPlayerMoved.bind(this));
+  }
+
+  draw(grid) {
+    const gameObjects = grid.getGameObjectsInRange(
+      this.location.x,
+      this.location.y,
+      this.width + gameData.cellSize,
+      this.height
+    );
+
+    push();
+    translate(-this.location.x, this.location.y);
+    gameObjects.forEach((gameObject) => gameObject.draw());
+    pop();
+  }
+
+  update() {}
+
+  onNotifyPlayerMoved(event, playerLocation) {
+    if (event === events.playerMoved) {
+      console.log("moving");
+      this.location.x = playerLocation.x - gameData.cameraChaseX;
+    }
   }
 }

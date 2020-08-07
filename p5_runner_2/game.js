@@ -2,18 +2,29 @@ let grid;
 let nextObjectId;
 let camera;
 
-// next time
-// stop every static object from moving
-// have the camera draw everying on the screen
-// update the camera
-// move objects around on the grid based on the cameras position
-
 function setup() {
-  createCanvas(gameData.screenWidth, gameData.screenHeight);
+  createCanvas(gameData.cameraWidth, gameData.cameraHeight);
 
-  camera = new Camera(createVector(0, 0), createVector(1, 0), width, height);
+  const playerMovedEvent = new EventSystem();
+  grid = new Grid(
+    gameData.cellSize,
+    gameData.level.length,
+    gameData.worldHeight
+  );
   nextObjectId = 0;
-  grid = new Grid(gameData.cellSize);
+  const player = new GameObject(
+    nextObjectId,
+    gameData.player.startX,
+    gameData.player.startY,
+    gameData.player.bodyWidth,
+    gameData.player.bodyHeight,
+    new DrawPlayer(),
+    "player",
+    new PlayerPhysics(playerMovedEvent)
+  );
+  nextObjectId += 1;
+  grid.add(player);
+  camera = new Camera(0, 0, width, height, playerMovedEvent);
 
   gameData.level.forEach((cell, index) => {
     buildLevel[cell](index * gameData.cellSize, gameData.floorY, grid);
@@ -22,9 +33,10 @@ function setup() {
 
 function draw() {
   background("black");
-  grid.drawGrid();
+  // grid.drawGrid();
   grid.update();
-  grid.draw();
+  camera.update();
+  camera.draw(grid);
 }
 
 const buildLevel = {
@@ -35,7 +47,8 @@ const buildLevel = {
       y,
       gameData.cellSize,
       gameData.cellSize,
-      new DrawFloor()
+      new DrawFloor(),
+      "floor"
     );
     grid.add(floor);
     nextObjectId += 1;
@@ -49,7 +62,8 @@ const buildLevel = {
       y - gameData.cellSize,
       5,
       gameData.cellSize,
-      new DrawStart()
+      new DrawStart(),
+      "start"
     );
     grid.add(start);
     nextObjectId += 1;
@@ -63,7 +77,8 @@ const buildLevel = {
       y - gameData.cellSize,
       gameData.cellSize,
       gameData.cellSize,
-      new DrawSpike()
+      new DrawSpike(),
+      "spike"
     );
     grid.add(spike);
     nextObjectId += 1;
@@ -79,7 +94,8 @@ const buildLevel = {
       y - gameData.cellSize,
       5,
       gameData.cellSize,
-      new DrawEnd()
+      new DrawEnd(),
+      "end"
     );
     grid.add(end);
     nextObjectId += 1;

@@ -1,8 +1,18 @@
 const gameData = {
   cellSize: 50.0,
-  screenWidth: 1000,
-  screenHeight: 500,
+  cameraWidth: 1000,
+  cameraHeight: 500,
   floorY: 400,
+  worldHeight: 10,
+  cameraChaseX: 100.0,
+  player: {
+    headSize: 25,
+    bodyHeight: 50,
+    bodyWidth: 25,
+    startX: 100.0,
+    startY: 350.0,
+    speed: 4.0,
+  },
   level: [
     "floor",
     "floor",

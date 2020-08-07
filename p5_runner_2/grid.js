@@ -1,13 +1,14 @@
 class Grid {
-  constructor(cellSize = 100) {
-    this.horizontileCount = Math.floor(width / cellSize);
-    this.verticalCount = Math.floor(height / cellSize);
-    this.cellWidth = cellSize;
+  constructor(
+    cellSize = 100,
+    worldHorizontileCount = 1000,
+    worldVerticalCount = 4
+  ) {
+    this.horizontileCount = worldHorizontileCount;
+    this.verticalCount = worldVerticalCount;
     this.cellHeight = cellSize;
+    this.cellWidth = cellSize;
     this.cells = [];
-    this.offScreenLeft = {};
-    this.offScreenRight = {};
-    this.farOffScreenLeft = {};
 
     for (let yCount = 0; yCount < this.verticalCount; yCount += 1) {
       const yCells = [];
@@ -21,10 +22,15 @@ class Grid {
 
   drawGrid() {
     stroke(this.lineColor);
+    noFill();
     this.cells.forEach((xCells, yIndex) => {
-      line(0, yIndex * this.cellHeight, width, yIndex * this.cellHeight);
       xCells.forEach((cell, xIndex) => {
-        line(xIndex * this.cellWidth, 0, xIndex * this.cellWidth, height);
+        rect(
+          xIndex * this.cellWidth,
+          yIndex * this.cellHeight,
+          this.cellWidth,
+          this.cellHeight
+        );
       });
     });
   }
@@ -32,28 +38,33 @@ class Grid {
   add(gameObject) {
     const xIndex = Math.floor(gameObject.location.x / this.cellWidth);
     const yIndex = Math.floor(gameObject.location.y / this.cellHeight);
-    if (xIndex === -1) {
-      this.offScreenLeft[gameObject.id] = gameObject;
-    } else if (xIndex < -1) {
-      this.farOffScreenLeft[gameObject.id] = gameObject;
-    } else if (xIndex >= this.cells[0].length) {
-      this.offScreenRight[gameObject.id] = gameObject;
-    } else {
-      this.cells[yIndex][xIndex][gameObject.id] = gameObject;
-    }
+    this.cells[yIndex][xIndex][gameObject.id] = gameObject;
   }
 
-  draw() {
-    this.cells.forEach((xCells) => {
-      xCells.forEach((gameObjects) => {
-        for (const gameObjectId in gameObjects) {
-          gameObjects[gameObjectId].draw();
+  getGameObjectsInRange(x, y, width, height) {
+    let indexX = Math.floor(x / this.cellWidth);
+    let indexY = Math.floor(y / this.cellHeight);
+    let xCount = Math.floor(width / this.cellWidth);
+    let yCount = Math.floor(height / this.cellHeight);
+    const gameObjects = [];
+
+    for (
+      let cellIndexY = indexY;
+      cellIndexY < indexY + yCount;
+      cellIndexY += 1
+    ) {
+      for (
+        let cellIndexX = indexX;
+        cellIndexX < indexX + xCount;
+        cellIndexX += 1
+      ) {
+        for (let gameObjectId in this.cells[cellIndexY][cellIndexX]) {
+          gameObjects.push(this.cells[cellIndexY][cellIndexX][gameObjectId]);
         }
-      });
-    });
-    for (const gameObjectId in this.offScreenLeft) {
-      this.offScreenLeft[gameObjectId].draw();
+      }
     }
+
+    return gameObjects;
   }
 
   update() {

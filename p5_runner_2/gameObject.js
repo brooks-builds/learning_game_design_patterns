@@ -6,14 +6,16 @@ class GameObject {
     width = gameData.cellSize,
     height = gameData.cellSize,
     drawModule,
-    velocity = createVector(-1, 0)
+    type,
+    physicsModule = new StaticPhysics()
   ) {
     this.location = createVector(x, y);
     this.width = width;
     this.height = height;
     this.drawModule = drawModule;
-    this.velocity = velocity;
     this.id = id;
+    this.physics = physicsModule;
+    this.type = type;
   }
 
   draw() {
@@ -21,6 +23,6 @@ class GameObject {
   }
 
   update() {
-    this.location.add(this.velocity);
+    this.physics.update(this.location);
   }
 }
