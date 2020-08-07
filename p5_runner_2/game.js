@@ -6,10 +6,13 @@ function setup() {
   createCanvas(gameData.cameraWidth, gameData.cameraHeight);
 
   const playerMovedEvent = new EventSystem();
+  const gameObjectMovedIntoNewCellEvent = new EventSystem();
+
   grid = new Grid(
     gameData.cellSize,
     gameData.level.length,
-    gameData.worldHeight
+    gameData.worldHeight,
+    gameObjectMovedIntoNewCellEvent
   );
   nextObjectId = 0;
   const player = new GameObject(
@@ -20,7 +23,7 @@ function setup() {
     gameData.player.bodyHeight,
     new DrawPlayer(),
     "player",
-    new PlayerPhysics(playerMovedEvent)
+    new PlayerPhysics(playerMovedEvent, gameObjectMovedIntoNewCellEvent)
   );
   nextObjectId += 1;
   grid.add(player);

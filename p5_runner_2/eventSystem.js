@@ -16,4 +16,5 @@ class EventSystem {
 
 const events = {
   playerMoved: "playerMoved",
+  gameObjectMovedCells: "gameObjectMovedCells",
 };

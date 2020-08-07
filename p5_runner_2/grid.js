@@ -2,13 +2,15 @@ class Grid {
   constructor(
     cellSize = 100,
     worldHorizontileCount = 1000,
-    worldVerticalCount = 4
+    worldVerticalCount = 4,
+    gameObjectMovedIntoNewCellEvent
   ) {
     this.horizontileCount = worldHorizontileCount;
     this.verticalCount = worldVerticalCount;
     this.cellHeight = cellSize;
     this.cellWidth = cellSize;
     this.cells = [];
+    this.gameObjectMovedIntoNewCellEvent = gameObjectMovedIntoNewCellEvent;
 
     for (let yCount = 0; yCount < this.verticalCount; yCount += 1) {
       const yCells = [];
@@ -115,6 +117,13 @@ class Grid {
     }
 
     this.add(gameObject);
+    this.gameObjectMovedIntoNewCellEvent.notify(events.gameObjectMovedCells, {
+      currentCell: this.getGameObjectsInCell(nextIndexX, nextIndexY),
+    });
+  }
+
+  getGameObjectsInCell(x, y) {
+    return this.cells[y][x];
   }
 
   isInSameGridLocation(currentIndexX, currentIndexY, nextIndexX, nextIndexY) {
