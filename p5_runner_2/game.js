@@ -3,14 +3,24 @@ let nextObjectId;
 let camera;
 let state;
 let startGameEvent;
+let resetGameEvent;
+let playerMovedEvent;
 
 function setup() {
   createCanvas(gameData.cameraWidth, gameData.cameraHeight);
 
-  state = gameState.notStarted;
-  const playerMovedEvent = new EventSystem();
+  state = gameData.states.notStarted;
   const gameObjectMovedIntoNewCellEvent = new EventSystem();
+  const playerWonEvent = new EventSystem();
+  const playerDiedEvent = new EventSystem();
+  playerMovedEvent = new EventSystem();
+  resetGameEvent = new EventSystem();
   startGameEvent = new EventSystem();
+
+  startGameEvent.registerListener(() => (state = gameData.states.playing));
+  playerWonEvent.registerListener(() => (state = gameData.states.won));
+  resetGameEvent.registerListener(resetGame);
+  playerDiedEvent.registerListener(() => (state = gameData.states.died));
 
   grid = new Grid(
     gameData.cellSize,
@@ -26,11 +36,13 @@ function setup() {
     gameData.player.bodyWidth,
     gameData.player.bodyHeight,
     new DrawPlayer(),
-    "player",
+    gameData.types.player,
     new PlayerPhysics(
       playerMovedEvent,
       gameObjectMovedIntoNewCellEvent,
-      startGameEvent
+      startGameEvent,
+      playerWonEvent,
+      playerDiedEvent
     )
   );
   nextObjectId += 1;
@@ -48,14 +60,18 @@ function draw() {
   grid.update();
   camera.update();
   camera.draw(grid);
-  textSize(36);
-  fill("white");
-  text("Press RETURN to begin", width / 2 - 175, height / 2);
+
+  drawInterface(state);
 }
 
 function keyPressed() {
-  if (keyCode === ENTER && state === gameState.notStarted) {
-    startGameEvent.notify(events.startingGame);
+  if (keyCode === ENTER && state === gameData.states.notStarted) {
+    startGameEvent.notify();
+  } else if (
+    keyCode === ENTER &&
+    (state === gameData.states.won || state === gameData.states.died)
+  ) {
+    resetGameEvent.notify();
   }
 }
 
@@ -68,7 +84,7 @@ const buildLevel = {
       gameData.cellSize,
       gameData.cellSize,
       new DrawFloor(),
-      "floor"
+      gameData.types.floor
     );
     grid.add(floor);
     nextObjectId += 1;
@@ -83,7 +99,7 @@ const buildLevel = {
       5,
       gameData.cellSize,
       new DrawStart(),
-      "start"
+      gameData.types.start
     );
     grid.add(start);
     nextObjectId += 1;
@@ -98,7 +114,7 @@ const buildLevel = {
       gameData.cellSize,
       gameData.cellSize,
       new DrawSpike(),
-      "spike"
+      gameData.types.spikeUp
     );
     grid.add(spike);
     nextObjectId += 1;
@@ -115,16 +131,18 @@ const buildLevel = {
       5,
       gameData.cellSize,
       new DrawEnd(),
-      "end"
+      gameData.types.end
     );
     grid.add(end);
     nextObjectId += 1;
   },
 };
 
-const gameState = {
-  notStarted: "not started",
-  playing: "playing",
-  won: "won",
-  died: "died",
-};
+function resetGame() {
+  state = gameData.states.notStarted;
+  const player = grid.removeGameObjectsByType(gameData.types.player)[0];
+  player.location.x = gameData.player.startX;
+  player.location.y = gameData.player.startY;
+  grid.add(player);
+  playerMovedEvent.notify(player.location);
+}

@@ -117,7 +117,7 @@ class Grid {
     }
 
     this.add(gameObject);
-    this.gameObjectMovedIntoNewCellEvent.notify(events.gameObjectMovedCells, {
+    this.gameObjectMovedIntoNewCellEvent.notify({
       currentCell: this.getGameObjectsInCell(nextIndexX, nextIndexY),
     });
   }
@@ -141,5 +141,22 @@ class Grid {
     if (currentIndexX < -1 && nextIndexX < -1) return true;
 
     return false;
+  }
+
+  removeGameObjectsByType(type) {
+    const results = [];
+
+    this.cells.forEach((row) => {
+      row.forEach((cell) => {
+        for (let objectId in cell) {
+          if (cell[objectId].type === type) {
+            results.push(cell[objectId]);
+            delete cell[objectId];
+          }
+        }
+      });
+    });
+
+    return results;
   }
 }

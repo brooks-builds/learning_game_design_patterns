@@ -1,21 +1,13 @@
 class EventSystem {
   constructor() {
-    this.onNotify = (event) => {
-      console.log(`${event} is not being listened to right now`);
-    };
+    this.listeners = [];
   }
 
-  notify(event, data) {
-    this.onNotify(event, data);
+  notify(data) {
+    this.listeners.forEach((callback) => callback(data));
   }
 
   registerListener(callback) {
-    this.onNotify = callback;
+    this.listeners.push(callback);
   }
 }
-
-const events = {
-  playerMoved: "playerMoved",
-  gameObjectMovedCells: "gameObjectMovedCells",
-  startingGame: "starting game",
-};

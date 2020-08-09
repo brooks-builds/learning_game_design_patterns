@@ -13,6 +13,19 @@ const gameData = {
     startY: 350.0,
     speed: 4.0,
   },
+  types: {
+    player: "player",
+    floor: "floor",
+    start: "start",
+    spikeUp: "spikeUp",
+    end: "end",
+  },
+  states: {
+    notStarted: "not started",
+    playing: "playing",
+    won: "won",
+    died: "died",
+  },
   level: [
     "floor",
     "floor",

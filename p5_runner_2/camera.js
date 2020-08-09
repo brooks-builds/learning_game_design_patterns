@@ -22,10 +22,7 @@ class Camera {
 
   update() {}
 
-  onNotifyPlayerMoved(event, playerLocation) {
-    if (event === events.playerMoved) {
-      console.log("moving");
-      this.location.x = playerLocation.x - gameData.cameraChaseX;
-    }
+  onNotifyPlayerMoved(playerLocation) {
+    this.location.x = playerLocation.x - gameData.cameraChaseX;
   }
 }
