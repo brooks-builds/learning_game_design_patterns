@@ -5,6 +5,7 @@ let state;
 let startGameEvent;
 let resetGameEvent;
 let playerMovedEvent;
+let gravityForce;
 
 function setup() {
   createCanvas(gameData.cameraWidth, gameData.cameraHeight);
@@ -13,9 +14,12 @@ function setup() {
   const gameObjectMovedIntoNewCellEvent = new EventSystem();
   const playerWonEvent = new EventSystem();
   const playerDiedEvent = new EventSystem();
+  const gameObjectMovedOutOfGrid = new EventSystem();
   playerMovedEvent = new EventSystem();
   resetGameEvent = new EventSystem();
   startGameEvent = new EventSystem();
+
+  gravityForce = createVector(0, gameData.gravityForce);
 
   startGameEvent.registerListener(() => (state = gameData.states.playing));
   playerWonEvent.registerListener(() => (state = gameData.states.won));
@@ -26,7 +30,8 @@ function setup() {
     gameData.cellSize,
     gameData.level.length,
     gameData.worldHeight,
-    gameObjectMovedIntoNewCellEvent
+    gameObjectMovedIntoNewCellEvent,
+    gameObjectMovedOutOfGrid
   );
   nextObjectId = 0;
   const player = new GameObject(
@@ -42,7 +47,9 @@ function setup() {
       gameObjectMovedIntoNewCellEvent,
       startGameEvent,
       playerWonEvent,
-      playerDiedEvent
+      playerDiedEvent,
+      gameObjectMovedOutOfGrid,
+      nextObjectId
     )
   );
   nextObjectId += 1;
@@ -57,7 +64,9 @@ function setup() {
 function draw() {
   background("black");
   // grid.drawGrid();
-  grid.update();
+  if (state === gameData.states.playing) {
+    grid.update();
+  }
   camera.update();
   camera.draw(grid);
 
@@ -140,9 +149,10 @@ const buildLevel = {
 
 function resetGame() {
   state = gameData.states.notStarted;
-  const player = grid.removeGameObjectsByType(gameData.types.player)[0];
+  let player = grid.removeGameObjectsByType(gameData.types.player)[0];
   player.location.x = gameData.player.startX;
   player.location.y = gameData.player.startY;
+  player.physics.velocity = createVector(gameData.player.speed, 0);
   grid.add(player);
   playerMovedEvent.notify(player.location);
 }

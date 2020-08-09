@@ -22,7 +22,13 @@ class GameObject {
     this.drawModule.draw(this.location, this.width, this.height);
   }
 
-  update() {
-    this.physics.update(this.location);
+  update(nearbyGameObjects) {
+    this.physics.update(
+      this.location,
+      nearbyGameObjects,
+      this.width,
+      this.height
+    );
+    this.physics.applyForce(gravityForce);
   }
 }

@@ -5,6 +5,7 @@ const gameData = {
   floorY: 400,
   worldHeight: 10,
   cameraChaseX: 100.0,
+  gravityForce: 1.0,
   player: {
     headSize: 25,
     bodyHeight: 50,
@@ -12,6 +13,7 @@ const gameData = {
     startX: 100.0,
     startY: 350.0,
     speed: 4.0,
+    jumpForce: 5.0,
   },
   types: {
     player: "player",
@@ -32,6 +34,7 @@ const gameData = {
     "start",
     "floor",
     "floor",
+    "space",
     "floor",
     "spikeUp",
     "space",
