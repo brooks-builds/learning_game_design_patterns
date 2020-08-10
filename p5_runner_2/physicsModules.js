@@ -6,7 +6,8 @@ class PlayerPhysics {
     playerWonEvent,
     playerDiedEvent,
     gameObjectMovedOutOfGridEvent,
-    playerId
+    playerId,
+    jumpEvent
   ) {
     this.velocity = createVector(gameData.player.speed, 0);
     this.movedEvent = movedEvent;
@@ -21,6 +22,8 @@ class PlayerPhysics {
       this.gameObjectMovedOutOfGridEvent.bind(this)
     );
     this.playerId = playerId;
+    jumpEvent.registerListener(this.handleJumpEvent.bind(this));
+    this.isJumping = false;
   }
 
   update(location, nearbyGameObjects = [], playerWidth, playerHeight) {
@@ -29,13 +32,13 @@ class PlayerPhysics {
       location.add(this.velocity);
       nearbyGameObjects.forEach((gameObject) => {
         if (gameObject.type !== gameData.types.floor) return;
-        console.log(gameObject);
         if (
           this.isCollidingWith(location, playerWidth, playerHeight, gameObject)
         ) {
           if (oldLocation.y + playerHeight <= gameObject.location.y) {
             location.y = gameObject.location.y - playerHeight;
             this.velocity.y = 0;
+            this.isJumping = false;
           } else {
             location.x = gameObject.location.x - playerWidth;
             this.velocity.x = 0;
@@ -87,6 +90,13 @@ class PlayerPhysics {
   gameObjectMovedOutOfGridEvent(gameObject) {
     if (gameObject.id === this.playerId) {
       this.playerDiedEvent.notify();
+    }
+  }
+
+  handleJumpEvent() {
+    if (!this.isJumping) {
+      this.velocity.y -= gameData.player.jumpForce;
+      this.isJumping = true;
     }
   }
 }

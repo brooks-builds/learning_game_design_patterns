@@ -6,6 +6,12 @@ let startGameEvent;
 let resetGameEvent;
 let playerMovedEvent;
 let gravityForce;
+let jumpEvent;
+const SPACE = 32;
+
+const commands = {
+  jump: "jump",
+};
 
 function setup() {
   createCanvas(gameData.cameraWidth, gameData.cameraHeight);
@@ -18,6 +24,7 @@ function setup() {
   playerMovedEvent = new EventSystem();
   resetGameEvent = new EventSystem();
   startGameEvent = new EventSystem();
+  jumpEvent = new EventSystem();
 
   gravityForce = createVector(0, gameData.gravityForce);
 
@@ -49,7 +56,8 @@ function setup() {
       playerWonEvent,
       playerDiedEvent,
       gameObjectMovedOutOfGrid,
-      nextObjectId
+      nextObjectId,
+      jumpEvent
     )
   );
   nextObjectId += 1;
@@ -81,6 +89,10 @@ function keyPressed() {
     (state === gameData.states.won || state === gameData.states.died)
   ) {
     resetGameEvent.notify();
+  }
+
+  if (keyCode === SPACE && state === gameData.states.playing) {
+    jumpEvent.notify();
   }
 }
 
