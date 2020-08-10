@@ -35,9 +35,18 @@ function setup() {
   resetGameEvent.registerListener(resetGame);
   playerDiedEvent.registerListener(() => (state = gameData.states.died));
 
+  const level = [
+    gameData.types.floor,
+    gameData.types.floor,
+    gameData.types.start,
+    ...gameData.level,
+    gameData.types.end,
+    gameData.types.floor,
+    gameData.types.floor,
+  ];
   grid = new Grid(
     gameData.cellSize,
-    gameData.level.length,
+    level.length,
     gameData.worldHeight,
     gameObjectMovedIntoNewCellEvent,
     gameObjectMovedOutOfGrid
@@ -65,15 +74,14 @@ function setup() {
   nextObjectId += 1;
   grid.add(player);
   camera = new Camera(0, 0, width, height, playerMovedEvent);
-
-  gameData.level.forEach((cell, index) => {
+  level.forEach((cell, index) => {
     buildLevel[cell](index * gameData.cellSize, gameData.floorY, grid);
   });
 }
 
 function draw() {
   background("black");
-  grid.drawGrid();
+  // grid.drawGrid();
   if (state === gameData.states.playing) {
     grid.update();
   }
@@ -81,6 +89,12 @@ function draw() {
   camera.draw(grid, editMode);
 
   drawInterface(state);
+
+  if (editMode && keyIsDown(gameData.commands.editingCameraMoveLeft)) {
+    camera.location.x -= gameData.cellSize / 4;
+  } else if (editMode && keyIsDown(gameData.commands.editingCameraMoveRight)) {
+    camera.location.x += gameData.cellSize / 4;
+  }
 }
 
 function keyPressed() {
@@ -109,7 +123,7 @@ function keyPressed() {
 
 function mouseClicked() {
   if (editMode) {
-    grid.handleEditCell(mouseX, mouseY);
+    grid.handleEditCell(mouseX + camera.location.x, mouseY);
   }
 }
 

@@ -6,8 +6,6 @@ class Grid {
     gameObjectMovedIntoNewCellEvent,
     gameObjectMovedOutOfGrid
   ) {
-    this.horizontileCount = worldHorizontileCount;
-    this.verticalCount = worldVerticalCount;
     this.cellHeight = cellSize;
     this.cellWidth = cellSize;
     this.cells = [];
@@ -15,9 +13,9 @@ class Grid {
     this.gameObjectMovedOutOfGrid = gameObjectMovedOutOfGrid;
     this.gameObjectsOffGrid = [];
 
-    for (let yCount = 0; yCount < this.verticalCount; yCount += 1) {
+    for (let yCount = 0; yCount < worldVerticalCount; yCount += 1) {
       const yCells = [];
-      for (let xCount = 0; xCount < this.horizontileCount; xCount += 1) {
+      for (let xCount = 0; xCount < worldHorizontileCount; xCount += 1) {
         yCells.push({});
       }
       this.cells.push(yCells);
@@ -98,8 +96,11 @@ class Grid {
         this.getGameObjectsInCell(currentIndexX + 1, currentIndexY + 1)
       )
     );
+
     gameObject.update(nearbyGameObjects);
+
     const nextIndexX = Math.floor(gameObject.location.x / this.cellWidth);
+
     const nextIndexY = Math.floor(gameObject.location.y / this.cellHeight);
 
     if (
@@ -112,15 +113,8 @@ class Grid {
     )
       return;
 
-    if (currentIndexX >= this.cells[0].length) {
-      delete this.offScreenRight[gameObject.id];
-    } else if (currentIndexX === -1) {
-      delete this.offScreenLeft[gameObject.id];
-    } else if (currentIndexX < -1) {
-      delete this.farOffScreenLeft[gameObject.id];
-    } else {
-      if (this.cells[currentIndexY][currentIndexX])
-        delete this.cells[currentIndexY][currentIndexX][gameObject.id];
+    if (this.cells[currentIndexY][currentIndexX]) {
+      delete this.cells[currentIndexY][currentIndexX][gameObject.id];
     }
 
     this.add(gameObject);
@@ -202,22 +196,65 @@ class Grid {
       worldX,
       worldY
     );
-    const gameObjects = this.getGameObjectsInCell(
-      gridCoordinates.x,
-      gridCoordinates.y
-    );
-    console.log(gameObjects);
 
-    for (let gameObjectId in gameObjects) {
-      const gameObject = gameObjects[gameObjectId];
-      if (gameObject.type === gameData.types.floor) {
-        gameObject.type = gameData.types.space;
-        gameObject.drawModule = new DrawSpace();
-      } else if (gameObject.type === gameData.types.space) {
-        gameObject.type = gameData.types.floor;
-        gameObject.drawModule = new DrawFloor();
+    if (this.isClickingOnEnd(gridCoordinates.x, gridCoordinates.y)) {
+      const cell = this.getGameObjectsInCell(
+        gridCoordinates.x,
+        gridCoordinates.y
+      );
+      let floor;
+      for (let cellIndex in cell) {
+        const gameObject = cell[cellIndex];
+        if (gameObject.type === gameData.types.floor) {
+          floor = gameObject.clone();
+          break;
+        }
+      }
+      if (!floor) return;
+
+      this.insertEmptyCells(
+        gridCoordinates.x,
+        gameData.cloneAmountWhileEditing
+      );
+      for (
+        let count = 0;
+        count <= gameData.cloneAmountWhileEditing;
+        count += 1
+      ) {
+        this.add(floor);
+        floor = floor.clone();
+        floor.location.x += gameData.cellSize;
+      }
+      nextObjectId += 1;
+    } else {
+      const gameObjects = this.getGameObjectsInCell(
+        gridCoordinates.x,
+        gridCoordinates.y
+      );
+
+      for (let gameObjectId in gameObjects) {
+        const gameObject = gameObjects[gameObjectId];
+        if (gameObject.type === gameData.types.floor) {
+          gameObject.type = gameData.types.space;
+          gameObject.drawModule = new DrawSpace();
+        } else if (gameObject.type === gameData.types.space) {
+          gameObject.type = gameData.types.floor;
+          gameObject.drawModule = new DrawFloor();
+        }
       }
     }
+  }
+
+  isClickingOnEnd(gridX, gridY) {
+    const gameObjectsAbove = this.getGameObjectsInCell(gridX, gridY - 1);
+    for (let gameObjectId in gameObjectsAbove) {
+      const gameObject = gameObjectsAbove[gameObjectId];
+      if (gameObject.type === gameData.types.end) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   convertWorldCoordinatesToGridCoordinates(worldX, worldY) {
@@ -225,5 +262,38 @@ class Grid {
       x: Math.floor(worldX / this.cellWidth),
       y: Math.floor(worldY / this.cellHeight),
     };
+  }
+
+  insertEmptyCells(gridX, countToInsert) {
+    const cellsToInsert = [];
+    for (let count = 0; count < countToInsert; count += 1) {
+      cellsToInsert.push({});
+    }
+    this.cells.forEach((row) => {
+      row.splice(gridX, 0, ...cellsToInsert);
+    });
+    this.shiftXCells(gridX, countToInsert);
+  }
+
+  shiftXCells(startX, shiftBy = 1) {
+    this.cells.forEach((row) => {
+      for (let index = startX; index < row.length; index += 1) {
+        const cell = row[index];
+        for (let objectId in cell) {
+          const gameObject = cell[objectId];
+          delete cell[objectId];
+          gameObject.location.x += gameData.cellSize * shiftBy;
+          this.add(gameObject);
+        }
+      }
+    });
+  }
+
+  get horizontileCount() {
+    return this.cells[0].length;
+  }
+
+  get verticalCount() {
+    return this.cells.length;
   }
 }

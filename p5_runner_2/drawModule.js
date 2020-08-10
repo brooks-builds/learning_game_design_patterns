@@ -1,8 +1,11 @@
 class DrawElement {
+  drawEditBorder(location, width, height) {
+    stroke("white");
+    noFill();
+    rect(location.x, location.y, width, height);
+  }
+
   draw(location, width, height, editMode = false) {
-    if (editMode) {
-      stroke("white");
-    }
     fill(this.color);
     rect(location.x, location.y, width, height);
   }
@@ -15,12 +18,17 @@ class DrawFloor extends DrawElement {
   }
 }
 
-class DrawSpace {
+class DrawSpace extends DrawElement {
+  constructor() {
+    super();
+    this.color = color("black");
+  }
   draw() {}
 }
 
-class DrawStart {
+class DrawStart extends DrawElement {
   constructor() {
+    super();
     this.color = color("yellow");
   }
 
@@ -30,8 +38,9 @@ class DrawStart {
   }
 }
 
-class DrawSpike {
+class DrawSpike extends DrawElement {
   constructor() {
+    super();
     this.color = color("grey");
   }
 
@@ -48,8 +57,9 @@ class DrawSpike {
   }
 }
 
-class DrawEnd {
+class DrawEnd extends DrawElement {
   constructor() {
+    super();
     this.color = color("green");
   }
 
@@ -59,8 +69,9 @@ class DrawEnd {
   }
 }
 
-class DrawPlayer {
+class DrawPlayer extends DrawElement {
   constructor() {
+    super();
     this.color = color("white");
   }
 

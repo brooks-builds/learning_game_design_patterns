@@ -19,7 +19,10 @@ class GameObject {
   }
 
   draw(editMode = false) {
-    this.drawModule.draw(this.location, this.width, this.height, editMode);
+    if (editMode) {
+      this.drawModule.drawEditBorder(this.location, this.width, this.height);
+    }
+    this.drawModule.draw(this.location, this.width, this.height);
   }
 
   update(nearbyGameObjects) {
@@ -30,5 +33,18 @@ class GameObject {
       this.height
     );
     this.physics.applyForce(gravityForce);
+  }
+
+  clone() {
+    return new GameObject(
+      nextObjectId++,
+      this.location.x,
+      this.location.y,
+      this.width,
+      this.height,
+      this.drawModule,
+      this.type,
+      this.physicsModule
+    );
   }
 }
