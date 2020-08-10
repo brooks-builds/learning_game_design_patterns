@@ -1,12 +1,22 @@
-class DrawFloor {
-  constructor() {
-    this.color = color("brown");
-  }
-
-  draw(location, width, height) {
+class DrawElement {
+  draw(location, width, height, editMode = false) {
+    if (editMode) {
+      stroke("white");
+    }
     fill(this.color);
     rect(location.x, location.y, width, height);
   }
+}
+
+class DrawFloor extends DrawElement {
+  constructor(editingMode = false) {
+    super();
+    this.color = color("brown");
+  }
+}
+
+class DrawSpace {
+  draw() {}
 }
 
 class DrawStart {

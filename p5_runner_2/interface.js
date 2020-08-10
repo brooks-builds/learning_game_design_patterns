@@ -20,4 +20,7 @@ const displayText = {
     text("Really?", width / 2 - 15, height / 2);
     this.reset();
   },
+  [gameData.states.editing]() {
+    text("editing mode", 5, 20);
+  },
 };

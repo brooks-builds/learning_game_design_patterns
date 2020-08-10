@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Runner Level Editor</title>
+    <style>
+      .world {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .box {
+        width: 20px;
+        height: 20px;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="prepare-world">
+      <input type="number" value="50" id="length" name="worldLength" /> Length
+      of the world
+      <button>Submit</button>
+    </form>
+    <main>
+      <section class="world" id="world"></section>
+    </main>
+    <script>
+      const prepareWorldForm = document.querySelector("#prepare-world");
+      prepareWorldForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const worldLength = Number(this.elements.worldLength.value);
+        createWorld(worldLength);
+      });
+
+      function createWorld(worldLength = 50) {
+        const world = document.querySelector("#world");
+        for (let count = 0; count < worldLength; count += 1) {
+          const box = document.createElement("div");
+          box.classList.add("box");
+          world.append(box);
+        }
+      }
+    </script>
+  </body>
+</html>

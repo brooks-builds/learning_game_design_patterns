@@ -8,6 +8,7 @@ let playerMovedEvent;
 let gravityForce;
 let jumpEvent;
 const SPACE = 32;
+let editMode;
 
 const commands = {
   jump: "jump",
@@ -25,6 +26,7 @@ function setup() {
   resetGameEvent = new EventSystem();
   startGameEvent = new EventSystem();
   jumpEvent = new EventSystem();
+  editMode = false;
 
   gravityForce = createVector(0, gameData.gravityForce);
 
@@ -71,12 +73,12 @@ function setup() {
 
 function draw() {
   background("black");
-  // grid.drawGrid();
+  grid.drawGrid();
   if (state === gameData.states.playing) {
     grid.update();
   }
   camera.update();
-  camera.draw(grid);
+  camera.draw(grid, editMode);
 
   drawInterface(state);
 }
@@ -94,6 +96,21 @@ function keyPressed() {
   if (keyCode === SPACE && state === gameData.states.playing) {
     jumpEvent.notify();
   }
+
+  if (keyCode === gameData.commands.toggleEditing) {
+    editMode = !editMode;
+    if (editMode) {
+      state = gameData.states.editing;
+    } else {
+      resetGame();
+    }
+  }
+}
+
+function mouseClicked() {
+  if (editMode) {
+    grid.handleEditCell(mouseX, mouseY);
+  }
 }
 
 const buildLevel = {
@@ -108,6 +125,20 @@ const buildLevel = {
       gameData.types.floor
     );
     grid.add(floor);
+    nextObjectId += 1;
+  },
+
+  space(x, y, grid) {
+    const space = new GameObject(
+      nextObjectId,
+      x,
+      y,
+      gameData.cellSize,
+      gameData.cellSize,
+      new DrawSpace(),
+      gameData.types.space
+    );
+    grid.add(space);
     nextObjectId += 1;
   },
 
@@ -140,8 +171,6 @@ const buildLevel = {
     grid.add(spike);
     nextObjectId += 1;
   },
-
-  space() {},
 
   end(x, y, grid) {
     this.floor(x, y, grid);

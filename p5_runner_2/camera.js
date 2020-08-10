@@ -6,7 +6,7 @@ class Camera {
     playerMovedEvent.registerListener(this.onNotifyPlayerMoved.bind(this));
   }
 
-  draw(grid) {
+  draw(grid, editMode = false) {
     const gameObjects = grid.getGameObjectsInRange(
       this.location.x,
       this.location.y,
@@ -16,7 +16,7 @@ class Camera {
 
     push();
     translate(-this.location.x, this.location.y);
-    gameObjects.forEach((gameObject) => gameObject.draw());
+    gameObjects.forEach((gameObject) => gameObject.draw(editMode));
     pop();
   }
 

@@ -196,4 +196,34 @@ class Grid {
 
     return results;
   }
+
+  handleEditCell(worldX, worldY) {
+    const gridCoordinates = this.convertWorldCoordinatesToGridCoordinates(
+      worldX,
+      worldY
+    );
+    const gameObjects = this.getGameObjectsInCell(
+      gridCoordinates.x,
+      gridCoordinates.y
+    );
+    console.log(gameObjects);
+
+    for (let gameObjectId in gameObjects) {
+      const gameObject = gameObjects[gameObjectId];
+      if (gameObject.type === gameData.types.floor) {
+        gameObject.type = gameData.types.space;
+        gameObject.drawModule = new DrawSpace();
+      } else if (gameObject.type === gameData.types.space) {
+        gameObject.type = gameData.types.floor;
+        gameObject.drawModule = new DrawFloor();
+      }
+    }
+  }
+
+  convertWorldCoordinatesToGridCoordinates(worldX, worldY) {
+    return {
+      x: Math.floor(worldX / this.cellWidth),
+      y: Math.floor(worldY / this.cellHeight),
+    };
+  }
 }

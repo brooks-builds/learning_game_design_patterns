@@ -21,12 +21,17 @@ const gameData = {
     start: "start",
     spikeUp: "spikeUp",
     end: "end",
+    space: "space",
   },
   states: {
     notStarted: "not started",
     playing: "playing",
     won: "won",
     died: "died",
+    editing: "editing",
+  },
+  commands: {
+    toggleEditing: 69,
   },
   level: [
     "floor",

@@ -18,8 +18,8 @@ class GameObject {
     this.type = type;
   }
 
-  draw() {
-    this.drawModule.draw(this.location, this.width, this.height);
+  draw(editMode = false) {
+    this.drawModule.draw(this.location, this.width, this.height, editMode);
   }
 
   update(nearbyGameObjects) {
