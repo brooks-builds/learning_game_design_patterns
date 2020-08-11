@@ -1,4 +1,4 @@
-use super::{CustomError, States, Types};
+use super::{CustomError, Types};
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 
@@ -49,15 +49,15 @@ impl RawGameData {
 }
 
 pub struct GameData {
-    cell_size: f32,
-    camera_width: f32,
-    camera_height: f32,
-    floor_y: f32,
-    world_height: u8,
-    camera_chase_x: f32,
-    gravity_force: f32,
-    player: PlayerData,
-    level: Vec<Types>,
+    pub cell_size: f32,
+    pub camera_width: f32,
+    pub camera_height: f32,
+    pub floor_y: f32,
+    pub world_height: u8,
+    pub camera_chase_x: f32,
+    pub gravity_force: f32,
+    pub player: PlayerData,
+    pub level: Vec<Types>,
 }
 
 pub fn load_from_file(file_name: &str) -> Result<GameData, CustomError> {
@@ -79,7 +79,7 @@ pub fn load_from_file(file_name: &str) -> Result<GameData, CustomError> {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct PlayerData {
+pub struct PlayerData {
     head_size: f32,
     body_height: f32,
     body_width: f32,
