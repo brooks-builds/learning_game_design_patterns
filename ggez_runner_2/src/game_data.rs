@@ -13,6 +13,7 @@ pub struct RawGameData {
     gravity_force: f32,
     player: PlayerData,
     level: Vec<String>,
+    start_width: f32,
 }
 
 impl RawGameData {
@@ -32,6 +33,7 @@ impl RawGameData {
             gravity_force: self.gravity_force,
             player: self.player,
             level,
+            start_width: self.start_width,
         }
     }
 
@@ -58,6 +60,7 @@ pub struct GameData {
     pub gravity_force: f32,
     pub player: PlayerData,
     pub level: Vec<Types>,
+    pub start_width: f32,
 }
 
 pub fn load_from_file(file_name: &str) -> Result<GameData, CustomError> {
@@ -80,11 +83,11 @@ pub fn load_from_file(file_name: &str) -> Result<GameData, CustomError> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerData {
-    head_size: f32,
-    body_height: f32,
-    body_width: f32,
-    start_x: f32,
-    start_y: f32,
-    speed: f32,
-    jump_force: f32,
+    pub head_size: f32,
+    pub body_height: f32,
+    pub body_width: f32,
+    pub start_x: f32,
+    pub start_y: f32,
+    pub speed: f32,
+    pub jump_force: f32,
 }

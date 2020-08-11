@@ -1,0 +1,85 @@
+use super::GameData;
+use ggez::graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, WHITE};
+use ggez::nalgebra::Point2;
+use ggez::{Context, GameResult};
+
+pub struct Meshes {
+    pub floor: Mesh,
+    pub cell: Mesh,
+    pub start: Mesh,
+    pub player: Mesh,
+}
+
+impl Meshes {
+    pub fn new(context: &mut Context, game_data: &GameData) -> GameResult<Meshes> {
+        Ok(Meshes {
+            floor: Self::create_floor_mesh(context, game_data.cell_size, game_data.cell_size)?,
+            cell: Self::create_cell_mesh(context, game_data.cell_size, game_data.cell_size)?,
+            start: Self::create_start_mesh(
+                context,
+                game_data.start_width,
+                game_data.cell_size,
+                game_data.cell_size,
+            )?,
+            player: Self::create_player_mesh(
+                context,
+                game_data.player.body_width,
+                game_data.player.body_height,
+                game_data.player.head_size,
+            )?,
+        })
+    }
+
+    fn create_floor_mesh(context: &mut Context, width: f32, height: f32) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .rectangle(
+                DrawMode::fill(),
+                Rect::new(0.0, 0.0, width, height),
+                Color::from_rgb(102, 51, 0),
+            )
+            .build(context)
+    }
+
+    fn create_cell_mesh(context: &mut Context, width: f32, height: f32) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .rectangle(
+                DrawMode::stroke(1.0),
+                Rect::new(0.0, 0.0, width, height),
+                WHITE,
+            )
+            .build(context)
+    }
+
+    fn create_start_mesh(
+        context: &mut Context,
+        width: f32,
+        height: f32,
+        world_width: f32,
+    ) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .rectangle(
+                DrawMode::fill(),
+                Rect::new(world_width - width, 0.0, width, height),
+                Color::new(0.0, 1.0, 0.0, 1.0),
+            )
+            .build(context)
+    }
+
+    fn create_player_mesh(
+        context: &mut Context,
+        width: f32,
+        height: f32,
+        head_radius: f32,
+    ) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .circle(
+                DrawMode::fill(),
+                Point2::new(width / 2.0, head_radius / 2.0),
+                head_radius,
+                0.1,
+                WHITE,
+            )
+            .rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, width, height), WHITE)
+            .build(context)
+    }
+}
