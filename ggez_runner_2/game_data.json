@@ -7,6 +7,7 @@
   "camera_chase_x": 100.0,
   "gravity_force": 0.5,
   "start_width": 5.0,
+  "end_width": 8.0,
   "player": {
     "head_size": 12,
     "body_height": 50,
@@ -22,8 +23,8 @@
     "start",
     "floor",
     "floor",
-    "floor",
-    "floor",
+    "spikeUp",
+    "spikeUp",
     "floor",
     "floor",
     "spikeUp",

@@ -96,6 +96,54 @@ impl GameState {
                     grid.add(player);
                     *next_object_id += 1;
                 }
+                Types::SpikeUp => {
+                    let floor = GameObject::new(
+                        *next_object_id,
+                        game_data.cell_size,
+                        game_data.cell_size,
+                        game_data.cell_size * index as f32,
+                        game_data.floor_y,
+                        Types::Floor,
+                    );
+
+                    grid.add(floor);
+                    *next_object_id += 1;
+
+                    let spike = GameObject::new(
+                        *next_object_id,
+                        game_data.cell_size,
+                        game_data.cell_size,
+                        game_data.cell_size * index as f32,
+                        game_data.floor_y - game_data.cell_size,
+                        Types::SpikeUp,
+                    );
+
+                    grid.add(spike);
+                    *next_object_id += 1;
+                }
+                Types::End => {
+                    let floor = GameObject::new(
+                        *next_object_id,
+                        game_data.cell_size,
+                        game_data.cell_size,
+                        game_data.cell_size * index as f32,
+                        game_data.floor_y,
+                        Types::Floor,
+                    );
+                    *next_object_id += 1;
+                    grid.add(floor);
+
+                    let end = GameObject::new(
+                        *next_object_id,
+                        game_data.end_width,
+                        game_data.cell_size,
+                        game_data.cell_size * index as f32,
+                        game_data.floor_y - game_data.cell_size,
+                        Types::End,
+                    );
+                    grid.add(end);
+                    *next_object_id += 1;
+                }
                 _ => (),
             }
         }

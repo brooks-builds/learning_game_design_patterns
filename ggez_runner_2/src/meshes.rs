@@ -8,6 +8,8 @@ pub struct Meshes {
     pub cell: Mesh,
     pub start: Mesh,
     pub player: Mesh,
+    pub spike_up: Mesh,
+    pub end: Mesh,
 }
 
 impl Meshes {
@@ -27,6 +29,8 @@ impl Meshes {
                 game_data.player.body_height,
                 game_data.player.head_size,
             )?,
+            spike_up: Self::create_spike_mesh(context, game_data.cell_size, game_data.cell_size)?,
+            end: Self::create_end_mesh(context, game_data.end_width, game_data.cell_size)?,
         })
     }
 
@@ -65,6 +69,16 @@ impl Meshes {
             .build(context)
     }
 
+    fn create_end_mesh(context: &mut Context, width: f32, height: f32) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .rectangle(
+                DrawMode::fill(),
+                Rect::new(0.0, 0.0, width, height),
+                Color::new(0.0, 1.0, 0.0, 1.0),
+            )
+            .build(context)
+    }
+
     fn create_player_mesh(
         context: &mut Context,
         width: f32,
@@ -80,6 +94,19 @@ impl Meshes {
                 WHITE,
             )
             .rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, width, height), WHITE)
+            .build(context)
+    }
+
+    fn create_spike_mesh(context: &mut Context, width: f32, height: f32) -> GameResult<Mesh> {
+        MeshBuilder::new()
+            .triangles(
+                &[
+                    Point2::new(width / 2.0, 0.0),
+                    Point2::new(width, height),
+                    Point2::new(0.0, height),
+                ],
+                Color::from_rgb(81, 81, 82),
+            )?
             .build(context)
     }
 }

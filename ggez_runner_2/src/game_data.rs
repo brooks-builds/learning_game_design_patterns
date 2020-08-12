@@ -14,6 +14,7 @@ pub struct RawGameData {
     player: PlayerData,
     level: Vec<String>,
     start_width: f32,
+    end_width: f32,
 }
 
 impl RawGameData {
@@ -34,6 +35,7 @@ impl RawGameData {
             player: self.player,
             level,
             start_width: self.start_width,
+            end_width: self.end_width,
         }
     }
 
@@ -61,6 +63,7 @@ pub struct GameData {
     pub player: PlayerData,
     pub level: Vec<Types>,
     pub start_width: f32,
+    pub end_width: f32,
 }
 
 pub fn load_from_file(file_name: &str) -> Result<GameData, CustomError> {

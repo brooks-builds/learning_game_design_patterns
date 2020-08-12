@@ -35,6 +35,8 @@ impl GameObject {
             Types::Floor => &meshes.floor,
             Types::Start => &meshes.start,
             Types::Player => &meshes.player,
+            Types::SpikeUp => &meshes.spike_up,
+            Types::End => &meshes.end,
             _ => return Err(CustomError::CouldNotFindType),
         };
 
