@@ -1,7 +1,5 @@
 use super::{CustomError, GameObject, Meshes};
-use ggez::graphics::{DrawMode, DrawParam, Mesh, MeshBuilder, Rect, WHITE};
-use ggez::nalgebra::Point2;
-use ggez::{graphics, Context, GameResult};
+use ggez::{Context, GameResult};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -31,19 +29,19 @@ impl Grid {
     }
 
     pub fn draw(&self, context: &mut Context, meshes: &Meshes) -> Result<(), CustomError> {
-        for (y_index, row) in self.cells.iter().enumerate() {
-            for (x_index, cell) in row.iter().enumerate() {
+        for (_y_index, row) in self.cells.iter().enumerate() {
+            for (_x_index, cell) in row.iter().enumerate() {
                 // if let Err(error) = graphics::draw(
                 //     context,
                 //     &meshes.cell,
                 //     DrawParam::new().dest(Point2::new(
-                //         x_index as f32 * self.cell_width,
-                //         y_index as f32 * self.cell_height,
+                //         _x_index as f32 * self.cell_width,
+                //         _y_index as f32 * self.cell_height,
                 //     )),
                 // ) {
                 //     return Err(CustomError::GgezGameError(error));
                 // }
-                for (id, game_object) in cell {
+                for (_id, game_object) in cell {
                     game_object.draw(meshes, context)?;
                 }
             }

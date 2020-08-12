@@ -21,7 +21,6 @@ pub struct GameState {
     background_color: Color,
     grid: Grid,
     meshes: Meshes,
-    next_object_id: u64,
 }
 
 impl GameState {
@@ -36,13 +35,10 @@ impl GameState {
 
         Self::populate_level(&mut grid, &game_data, &mut next_object_id);
 
-        next_object_id += 1;
-
         Ok(GameState {
             background_color: Color::from_rgb(0, 51, 102),
             grid,
             meshes,
-            next_object_id,
         })
     }
 
@@ -50,28 +46,10 @@ impl GameState {
         for (index, level_type) in game_data.level.iter().enumerate() {
             match level_type {
                 Types::Floor => {
-                    let floor = GameObject::new(
-                        *next_object_id,
-                        game_data.cell_size,
-                        game_data.cell_size,
-                        game_data.cell_size * index as f32,
-                        game_data.floor_y,
-                        Types::Floor,
-                    );
-
-                    grid.add(floor);
-                    *next_object_id += 1;
+                    Self::create_floor_object(next_object_id, game_data, index, grid);
                 }
                 Types::Start => {
-                    let floor = GameObject::new(
-                        *next_object_id,
-                        game_data.cell_size,
-                        game_data.cell_size,
-                        game_data.cell_size * index as f32,
-                        game_data.floor_y,
-                        Types::Floor,
-                    );
-                    *next_object_id += 1;
+                    Self::create_floor_object(next_object_id, game_data, index, grid);
 
                     let start = GameObject::new(
                         *next_object_id,
@@ -83,7 +61,6 @@ impl GameState {
                     );
 
                     *next_object_id += 1;
-                    grid.add(floor);
                     grid.add(start);
                     let player = GameObject::new(
                         *next_object_id,
@@ -97,17 +74,7 @@ impl GameState {
                     *next_object_id += 1;
                 }
                 Types::SpikeUp => {
-                    let floor = GameObject::new(
-                        *next_object_id,
-                        game_data.cell_size,
-                        game_data.cell_size,
-                        game_data.cell_size * index as f32,
-                        game_data.floor_y,
-                        Types::Floor,
-                    );
-
-                    grid.add(floor);
-                    *next_object_id += 1;
+                    Self::create_floor_object(next_object_id, game_data, index, grid);
 
                     let spike = GameObject::new(
                         *next_object_id,
@@ -122,16 +89,7 @@ impl GameState {
                     *next_object_id += 1;
                 }
                 Types::End => {
-                    let floor = GameObject::new(
-                        *next_object_id,
-                        game_data.cell_size,
-                        game_data.cell_size,
-                        game_data.cell_size * index as f32,
-                        game_data.floor_y,
-                        Types::Floor,
-                    );
-                    *next_object_id += 1;
-                    grid.add(floor);
+                    Self::create_floor_object(next_object_id, game_data, index, grid);
 
                     let end = GameObject::new(
                         *next_object_id,
@@ -147,6 +105,24 @@ impl GameState {
                 _ => (),
             }
         }
+    }
+
+    fn create_floor_object(
+        next_object_id: &mut u64,
+        game_data: &GameData,
+        offset: usize,
+        grid: &mut Grid,
+    ) {
+        let floor = GameObject::new(
+            *next_object_id,
+            game_data.cell_size,
+            game_data.cell_size,
+            game_data.cell_size * offset as f32,
+            game_data.floor_y,
+            Types::Floor,
+        );
+        *next_object_id += 1;
+        grid.add(floor);
     }
 }
 

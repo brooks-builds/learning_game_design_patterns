@@ -1,7 +1,7 @@
 use super::{CustomError, Meshes, Types};
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
-use ggez::{graphics, Context, GameResult};
+use ggez::{graphics, Context};
 
 #[derive(Debug)]
 pub struct GameObject {
