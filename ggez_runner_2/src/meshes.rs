@@ -74,7 +74,7 @@ impl Meshes {
             .rectangle(
                 DrawMode::fill(),
                 Rect::new(0.0, 0.0, width, height),
-                Color::new(0.0, 1.0, 0.0, 1.0),
+                Color::new(1.0, 0.0, 0.0, 1.0),
             )
             .build(context)
     }

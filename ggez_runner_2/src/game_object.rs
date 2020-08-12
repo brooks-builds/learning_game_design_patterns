@@ -1,3 +1,4 @@
+use super::physics::Physics;
 use super::{CustomError, Meshes, Types};
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
@@ -9,7 +10,8 @@ pub struct GameObject {
     width: f32,
     height: f32,
     pub location: Vector2<f32>,
-    my_type: Types,
+    pub my_type: Types,
+    pub physics: Option<Box<dyn Physics>>,
 }
 
 impl GameObject {
@@ -20,13 +22,15 @@ impl GameObject {
         location_x: f32,
         location_y: f32,
         my_type: Types,
+        physics: Option<Box<dyn Physics>>,
     ) -> GameObject {
         GameObject {
             id,
-            width,
-            height,
+            width: width,
+            height: height,
             location: Vector2::new(location_x, location_y),
             my_type,
+            physics,
         }
     }
 
@@ -47,6 +51,31 @@ impl GameObject {
         ) {
             Ok(_) => Ok(()),
             Err(error) => Err(CustomError::GgezGameError(error)),
+        }
+    }
+
+    pub fn update(&mut self) {
+        if let Some(ref mut physics) = self.physics {
+            physics.update(&mut self.location);
+        }
+    }
+
+    pub fn handle_collisions(&mut self, other_game_objects: Vec<&GameObject>) {
+        if let Some(ref mut physics) = self.physics {
+            physics.handle_collisions(other_game_objects);
+        }
+    }
+}
+
+impl Clone for GameObject {
+    fn clone(&self) -> Self {
+        GameObject {
+            id: self.id,
+            width: self.width,
+            height: self.height,
+            location: self.location,
+            my_type: self.my_type.clone(),
+            physics: None,
         }
     }
 }
