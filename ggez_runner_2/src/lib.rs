@@ -236,6 +236,23 @@ impl EventHandler for GameState {
             match self.state {
                 States::Playing => {
                     self.grid.update(&mut self.game_objects);
+                    let game_objects_clone = self.game_objects.clone();
+
+                    if let Some((player_id, player)) = self
+                        .game_objects
+                        .iter_mut()
+                        .find(|(game_object_id, game_object)| game_object.my_type == Types::Player)
+                    {
+                        let nearby_game_objects = self.grid.query(
+                            player.location.x,
+                            player.location.y,
+                            player.location.x + self.game_data.cell_size,
+                            player.location.y + self.game_data.cell_size,
+                            &game_objects_clone,
+                        );
+                        player.handle_collisions(nearby_game_objects);
+                    }
+
                     if let Ok(_) = self.won_event_receive.try_recv() {
                         self.state = States::Won;
                     }

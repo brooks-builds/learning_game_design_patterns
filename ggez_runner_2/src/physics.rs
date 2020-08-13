@@ -43,22 +43,18 @@ impl Physics for PlayerPhysics {
         }
     }
 
-    fn handle_collisions(&mut self, other_game_objects: Vec<&GameObject>) {
-        dbg!(&other_game_objects);
-        for game_object in other_game_objects {
-            match game_object.my_type {
-                Types::End => {
-                    if let Err(error) = self.won_event_send.send(()) {
-                        println!("cound not send won event :(. I guess we lose forever now");
-                    }
+    fn handle_collisions(&mut self, game_objects: Vec<&GameObject>) {
+        for game_object in game_objects {
+            if Types::End == game_object.my_type {
+                if let Err(error) = self.won_event_send.send(()) {
+                    println!("Error sending win event: {}", error);
                 }
-                Types::SpikeUp => {
-                    // send a died event
-                    if let Err(error) = self.died_event_send.send(()) {
-                        println!("Could not send died event. I feel terrible for this player");
-                    }
+            }
+
+            if Types::SpikeUp == game_object.my_type {
+                if let Err(error) = self.died_event_send.send(()) {
+                    println!("Error sending died event: {}", error);
                 }
-                _ => (),
             }
         }
     }
