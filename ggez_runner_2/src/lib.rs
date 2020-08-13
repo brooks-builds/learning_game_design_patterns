@@ -13,7 +13,9 @@ pub use errors::CustomError;
 use game_data::GameData;
 use game_object::GameObject;
 use ggez::event::EventHandler;
-use ggez::graphics::Color;
+use ggez::graphics::{Color, DrawParam, Font, Scale, Text};
+use ggez::input::keyboard::{KeyCode, KeyMods};
+use ggez::nalgebra::Point2;
 use ggez::{graphics, timer, Context, GameResult};
 use grid::Grid;
 use meshes::Meshes;
@@ -29,12 +31,20 @@ pub struct GameState {
     camera: Camera,
     state: States,
     won_event_receive: Receiver<()>,
+    not_playing_text: Text,
+    won_text: Text,
+    dead_text: Text,
+    restart_text: Text,
+    game_data: GameData,
+    player_moved_event_send: Sender<f32>,
+    died_event_receive: Receiver<()>,
 }
 
 impl GameState {
     pub fn new(game_data: GameData, context: &mut Context) -> GameResult<GameState> {
         let (player_moved_event_send, player_moved_event_receive) = channel::<f32>();
         let (won_event_send, won_event_receive) = channel::<()>();
+        let (died_event_send, died_event_receive) = channel::<()>();
         let camera = Camera::new(
             game_data.player.start_x - game_data.camera_chase_x,
             0.0,
@@ -47,6 +57,7 @@ impl GameState {
             game_data.cell_size,
             game_data.cell_size,
             game_data.world_height,
+            game_data.level.len(),
         )?;
         let meshes = Meshes::new(context, &game_data)?;
 
@@ -54,17 +65,34 @@ impl GameState {
             &mut grid,
             &game_data,
             &mut next_object_id,
-            player_moved_event_send,
+            player_moved_event_send.clone(),
             won_event_send,
+            died_event_send,
         );
+
+        let mut not_playing_text = Text::new("Press ENTER to start");
+        not_playing_text.set_font(Font::default(), Scale::uniform(72.0));
+        let mut won_text = Text::new("You Won!!!");
+        won_text.set_font(Font::default(), Scale::uniform(72.0));
+        let mut dead_text = Text::new("Really???");
+        dead_text.set_font(Font::default(), Scale::uniform(72.0));
+        let mut restart_text = Text::new("Press ENTER to play again");
+        restart_text.set_font(Font::default(), Scale::uniform(64.0));
 
         Ok(GameState {
             background_color: Color::from_rgb(0, 51, 102),
             grid,
             meshes,
             camera,
-            state: States::Playing,
+            state: States::NotStarted,
             won_event_receive,
+            not_playing_text,
+            won_text,
+            dead_text,
+            restart_text,
+            game_data,
+            player_moved_event_send,
+            died_event_receive,
         })
     }
 
@@ -74,6 +102,7 @@ impl GameState {
         next_object_id: &mut u64,
         player_moved_event_send: Sender<f32>,
         won_event_send: Sender<()>,
+        died_event_send: Sender<()>,
     ) {
         for (index, level_type) in game_data.level.iter().enumerate() {
             match level_type {
@@ -106,6 +135,7 @@ impl GameState {
                             game_data.player.speed,
                             player_moved_event_send.clone(),
                             won_event_send.clone(),
+                            died_event_send.clone(),
                         ))),
                     );
                     grid.add(player);
@@ -165,25 +195,48 @@ impl GameState {
         *next_object_id += 1;
         grid.add(floor);
     }
+
+    fn reset_game(&mut self) {
+        if let Some(mut player) = self.grid.remove_first_by_type(Types::Player) {
+            let old_player_location_x = player.location.x;
+            player.location.x = self.game_data.player.start_x;
+            player.location.y = self.game_data.player.start_y;
+            if let Err(error) = self
+                .player_moved_event_send
+                .send(player.location.x - old_player_location_x)
+            {
+                println!("error resetting camera location: {}", error);
+            }
+            self.grid.add(player);
+            self.state = States::NotStarted;
+        }
+    }
 }
 
 impl EventHandler for GameState {
     fn update(&mut self, context: &mut Context) -> GameResult {
         while timer::check_update_time(context, 60) {
-            if let States::Playing = self.state {
-                self.grid.update();
-                self.camera.update();
+            match self.state {
+                States::Playing => {
+                    self.grid.update();
+                    if let Ok(_) = self.won_event_receive.try_recv() {
+                        self.state = States::Won;
+                    }
 
-                if let Ok(_) = self.won_event_receive.try_recv() {
-                    self.state = States::Won;
+                    if let Ok(_) = self.died_event_receive.try_recv() {
+                        self.state = States::Died;
+                    }
                 }
+                _ => (),
             }
         }
+        self.camera.update();
         Ok(())
     }
 
     fn draw(&mut self, context: &mut Context) -> GameResult {
         graphics::clear(context, self.background_color);
+        let (screen_width, screen_height) = graphics::drawable_size(context);
 
         if let Err(error) = self.camera.draw(&self.grid, &self.meshes, context) {
             match error {
@@ -192,6 +245,108 @@ impl EventHandler for GameState {
             }
         }
 
+        match self.state {
+            States::NotStarted => {
+                let (text_width, text_height) = self.not_playing_text.dimensions(context);
+                let text_width = text_width as f32;
+                let text_height = text_height as f32;
+                graphics::draw(
+                    context,
+                    &self.not_playing_text,
+                    DrawParam::new().dest(Point2::new(
+                        screen_width / 2.0 - text_width / 2.0,
+                        screen_height / 2.0 - text_height / 2.0,
+                    )),
+                )?;
+            }
+            States::Won => {
+                let (text_width, text_height) = self.won_text.dimensions(context);
+                let text_width = text_width as f32;
+                let text_height = text_height as f32;
+                graphics::draw(
+                    context,
+                    &self.won_text,
+                    DrawParam::new().dest(Point2::new(
+                        screen_width / 2.0 - text_width / 2.0,
+                        screen_height / 2.0 - text_height,
+                    )),
+                )?;
+
+                let (text_width, text_height) = self.restart_text.dimensions(context);
+                let text_width = text_width as f32;
+                let text_height = text_height as f32;
+                graphics::draw(
+                    context,
+                    &self.restart_text,
+                    DrawParam::new().dest(Point2::new(
+                        screen_width / 2.0 - text_width / 2.0,
+                        screen_height / 2.0 + text_height / 2.0,
+                    )),
+                )?;
+            }
+            States::Died => {
+                let (text_width, text_height) = self.dead_text.dimensions(context);
+                let text_width = text_width as f32;
+                let text_height = text_height as f32;
+                graphics::draw(
+                    context,
+                    &self.dead_text,
+                    DrawParam::new().dest(Point2::new(
+                        screen_width / 2.0 - text_width / 2.0,
+                        screen_height / 2.0 - text_height,
+                    )),
+                )?;
+
+                let (text_width, text_height) = self.restart_text.dimensions(context);
+                let text_width = text_width as f32;
+                let text_height = text_height as f32;
+                graphics::draw(
+                    context,
+                    &self.restart_text,
+                    DrawParam::new().dest(Point2::new(
+                        screen_width / 2.0 - text_width / 2.0,
+                        screen_height / 2.0 + text_height / 2.0,
+                    )),
+                )?;
+            }
+            _ => (),
+        }
+
+        // if let Err(error) = self.grid._draw(context, &self.meshes) {
+        //     if let CustomError::GgezGameError(error) = error {
+        //         return Err(error);
+        //     } else {
+        //         println!("Error drawing the grid: {:?}", error);
+        //     }
+        // }
+
         graphics::present(context)
+    }
+
+    fn key_down_event(
+        &mut self,
+        _context: &mut Context,
+        keycode: KeyCode,
+        _keymods: KeyMods,
+        _repeat: bool,
+    ) {
+        match self.state {
+            States::NotStarted => {
+                if keycode == KeyCode::Return {
+                    self.state = States::Playing;
+                }
+            }
+            States::Won => {
+                if keycode == KeyCode::Return {
+                    self.reset_game();
+                }
+            }
+            States::Died => {
+                if keycode == KeyCode::Return {
+                    self.reset_game();
+                }
+            }
+            _ => (),
+        }
     }
 }
