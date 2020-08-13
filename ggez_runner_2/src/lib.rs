@@ -21,6 +21,7 @@ use grid::Grid;
 use meshes::Meshes;
 use physics::{PlayerPhysics, StaticPhysics};
 pub use states::States;
+use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 pub use types::Types;
 
@@ -38,6 +39,7 @@ pub struct GameState {
     game_data: GameData,
     player_moved_event_send: Sender<f32>,
     died_event_receive: Receiver<()>,
+    game_objects: HashMap<u64, GameObject>,
 }
 
 impl GameState {
@@ -60,6 +62,7 @@ impl GameState {
             game_data.level.len(),
         )?;
         let meshes = Meshes::new(context, &game_data)?;
+        let mut game_objects = HashMap::new();
 
         Self::populate_level(
             &mut grid,
@@ -68,6 +71,7 @@ impl GameState {
             player_moved_event_send.clone(),
             won_event_send,
             died_event_send,
+            &mut game_objects,
         );
 
         let mut not_playing_text = Text::new("Press ENTER to start");
@@ -93,6 +97,7 @@ impl GameState {
             game_data,
             player_moved_event_send,
             died_event_receive,
+            game_objects,
         })
     }
 
@@ -103,14 +108,15 @@ impl GameState {
         player_moved_event_send: Sender<f32>,
         won_event_send: Sender<()>,
         died_event_send: Sender<()>,
+        game_objects: &mut HashMap<u64, GameObject>,
     ) {
         for (index, level_type) in game_data.level.iter().enumerate() {
             match level_type {
                 Types::Floor => {
-                    Self::create_floor_object(next_object_id, game_data, index, grid);
+                    Self::create_floor_object(next_object_id, game_data, index, grid, game_objects);
                 }
                 Types::Start => {
-                    Self::create_floor_object(next_object_id, game_data, index, grid);
+                    Self::create_floor_object(next_object_id, game_data, index, grid, game_objects);
 
                     let start = GameObject::new(
                         *next_object_id,
@@ -123,7 +129,8 @@ impl GameState {
                     );
 
                     *next_object_id += 1;
-                    grid.add(start);
+                    grid.add(&start);
+                    game_objects.insert(start.id, start);
                     let player = GameObject::new(
                         *next_object_id,
                         game_data.player.body_width,
@@ -138,11 +145,12 @@ impl GameState {
                             died_event_send.clone(),
                         ))),
                     );
-                    grid.add(player);
+                    grid.add(&player);
                     *next_object_id += 1;
+                    game_objects.insert(player.id, player);
                 }
                 Types::SpikeUp => {
-                    Self::create_floor_object(next_object_id, game_data, index, grid);
+                    Self::create_floor_object(next_object_id, game_data, index, grid, game_objects);
 
                     let spike = GameObject::new(
                         *next_object_id,
@@ -154,11 +162,12 @@ impl GameState {
                         Some(Box::new(StaticPhysics)),
                     );
 
-                    grid.add(spike);
+                    grid.add(&spike);
                     *next_object_id += 1;
+                    game_objects.insert(spike.id, spike);
                 }
                 Types::End => {
-                    Self::create_floor_object(next_object_id, game_data, index, grid);
+                    Self::create_floor_object(next_object_id, game_data, index, grid, game_objects);
 
                     let end = GameObject::new(
                         *next_object_id,
@@ -169,8 +178,9 @@ impl GameState {
                         Types::End,
                         Some(Box::new(StaticPhysics)),
                     );
-                    grid.add(end);
+                    grid.add(&end);
                     *next_object_id += 1;
+                    game_objects.insert(end.id, end);
                 }
                 _ => (),
             }
@@ -182,6 +192,7 @@ impl GameState {
         game_data: &GameData,
         offset: usize,
         grid: &mut Grid,
+        game_objects: &mut HashMap<u64, GameObject>,
     ) {
         let floor = GameObject::new(
             *next_object_id,
@@ -193,12 +204,18 @@ impl GameState {
             Some(Box::new(StaticPhysics)),
         );
         *next_object_id += 1;
-        grid.add(floor);
+        grid.add(&floor);
+        game_objects.insert(floor.id, floor);
     }
 
     fn reset_game(&mut self) {
-        if let Some(mut player) = self.grid.remove_first_by_type(Types::Player) {
+        if let Some((player_id, player)) = self
+            .game_objects
+            .iter_mut()
+            .find(|(game_object_id, game_object)| game_object.my_type == Types::Player)
+        {
             let old_player_location_x = player.location.x;
+            self.grid.remove(player);
             player.location.x = self.game_data.player.start_x;
             player.location.y = self.game_data.player.start_y;
             if let Err(error) = self
@@ -218,7 +235,24 @@ impl EventHandler for GameState {
         while timer::check_update_time(context, 60) {
             match self.state {
                 States::Playing => {
-                    self.grid.update();
+                    self.grid.update(&mut self.game_objects);
+                    let game_objects_clone = self.game_objects.clone();
+
+                    if let Some((player_id, player)) = self
+                        .game_objects
+                        .iter_mut()
+                        .find(|(game_object_id, game_object)| game_object.my_type == Types::Player)
+                    {
+                        let nearby_game_objects = self.grid.query(
+                            player.location.x,
+                            player.location.y,
+                            player.location.x + self.game_data.cell_size,
+                            player.location.y + self.game_data.cell_size,
+                            &game_objects_clone,
+                        );
+                        player.handle_collisions(nearby_game_objects);
+                    }
+
                     if let Ok(_) = self.won_event_receive.try_recv() {
                         self.state = States::Won;
                     }
@@ -238,7 +272,10 @@ impl EventHandler for GameState {
         graphics::clear(context, self.background_color);
         let (screen_width, screen_height) = graphics::drawable_size(context);
 
-        if let Err(error) = self.camera.draw(&self.grid, &self.meshes, context) {
+        if let Err(error) = self
+            .camera
+            .draw(&self.grid, &self.meshes, context, &self.game_objects)
+        {
             match error {
                 CustomError::GgezGameError(error) => return Err(error),
                 _ => panic!("unknown draw error"),
