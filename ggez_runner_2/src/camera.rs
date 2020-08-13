@@ -1,7 +1,8 @@
-use super::{CustomError, Grid, Meshes};
+use super::{CustomError, GameObject, Grid, Meshes};
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, Context};
+use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 
 pub struct Camera {
@@ -32,12 +33,14 @@ impl Camera {
         grid: &Grid,
         meshes: &Meshes,
         context: &mut Context,
+        game_objects: &HashMap<u64, GameObject>,
     ) -> Result<(), CustomError> {
         let game_objects = grid.query(
             self.location.x,
             self.location.y,
             self.location.x + self.width,
             self.location.y + self.height,
+            game_objects,
         );
 
         graphics::push_transform(
