@@ -15,11 +15,11 @@ use game_object::GameObject;
 use ggez::event::EventHandler;
 use ggez::graphics::{Color, DrawParam, Font, Scale, Text};
 use ggez::input::keyboard::{KeyCode, KeyMods};
-use ggez::nalgebra::Point2;
+use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, timer, Context, GameResult};
 use grid::Grid;
 use meshes::Meshes;
-use physics::{PlayerPhysics, StaticPhysics};
+use physics::PlayerPhysics;
 pub use states::States;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -40,6 +40,8 @@ pub struct GameState {
     player_moved_event_send: Sender<f32>,
     died_event_receive: Receiver<()>,
     game_objects: HashMap<u64, GameObject>,
+    gravity_force: Vector2<f32>,
+    game_object_off_grid_event: Receiver<u64>,
 }
 
 impl GameState {
@@ -47,6 +49,8 @@ impl GameState {
         let (player_moved_event_send, player_moved_event_receive) = channel::<f32>();
         let (won_event_send, won_event_receive) = channel::<()>();
         let (died_event_send, died_event_receive) = channel::<()>();
+        let (game_object_off_grid_event_send, game_object_off_grid_event_receive) =
+            channel::<u64>();
         let camera = Camera::new(
             game_data.player.start_x - game_data.camera_chase_x,
             0.0,
@@ -60,6 +64,7 @@ impl GameState {
             game_data.cell_size,
             game_data.world_height,
             game_data.level.len(),
+            game_object_off_grid_event_send,
         )?;
         let meshes = Meshes::new(context, &game_data)?;
         let mut game_objects = HashMap::new();
@@ -83,6 +88,8 @@ impl GameState {
         let mut restart_text = Text::new("Press ENTER to play again");
         restart_text.set_font(Font::default(), Scale::uniform(64.0));
 
+        let gravity_force = Vector2::new(0.0, game_data.gravity_force);
+
         Ok(GameState {
             background_color: Color::from_rgb(0, 51, 102),
             grid,
@@ -98,6 +105,8 @@ impl GameState {
             player_moved_event_send,
             died_event_receive,
             game_objects,
+            gravity_force,
+            game_object_off_grid_event: game_object_off_grid_event_receive,
         })
     }
 
@@ -125,7 +134,7 @@ impl GameState {
                         game_data.cell_size * index as f32,
                         game_data.floor_y - game_data.cell_size,
                         Types::Start,
-                        Some(Box::new(StaticPhysics)),
+                        None,
                     );
 
                     *next_object_id += 1;
@@ -159,7 +168,7 @@ impl GameState {
                         game_data.cell_size * index as f32,
                         game_data.floor_y - game_data.cell_size,
                         Types::SpikeUp,
-                        Some(Box::new(StaticPhysics)),
+                        None,
                     );
 
                     grid.add(&spike);
@@ -176,7 +185,7 @@ impl GameState {
                         game_data.cell_size * index as f32,
                         game_data.floor_y - game_data.cell_size,
                         Types::End,
-                        Some(Box::new(StaticPhysics)),
+                        None,
                     );
                     grid.add(&end);
                     *next_object_id += 1;
@@ -201,7 +210,7 @@ impl GameState {
             game_data.cell_size * offset as f32,
             game_data.floor_y,
             Types::Floor,
-            Some(Box::new(StaticPhysics)),
+            None,
         );
         *next_object_id += 1;
         grid.add(&floor);
@@ -216,8 +225,11 @@ impl GameState {
         {
             let old_player_location_x = player.location.x;
             self.grid.remove(player);
-            player.location.x = self.game_data.player.start_x;
-            player.location.y = self.game_data.player.start_y;
+            player.reset(
+                self.game_data.player.start_x,
+                self.game_data.player.start_y,
+                self.game_data.player.speed,
+            );
             if let Err(error) = self
                 .player_moved_event_send
                 .send(player.location.x - old_player_location_x)
@@ -235,7 +247,7 @@ impl EventHandler for GameState {
         while timer::check_update_time(context, 60) {
             match self.state {
                 States::Playing => {
-                    self.grid.update(&mut self.game_objects);
+                    self.grid.update(&mut self.game_objects, self.gravity_force);
                     let game_objects_clone = self.game_objects.clone();
 
                     if let Some((player_id, player)) = self
@@ -246,8 +258,8 @@ impl EventHandler for GameState {
                         let nearby_game_objects = self.grid.query(
                             player.location.x,
                             player.location.y,
-                            player.location.x + self.game_data.cell_size,
-                            player.location.y + self.game_data.cell_size,
+                            player.location.x + self.game_data.cell_size * 2.0,
+                            player.location.y + self.game_data.cell_size * 2.0,
                             &game_objects_clone,
                         );
                         player.handle_collisions(nearby_game_objects);
@@ -259,6 +271,14 @@ impl EventHandler for GameState {
 
                     if let Ok(_) = self.died_event_receive.try_recv() {
                         self.state = States::Died;
+                    }
+
+                    if let Ok(game_object_id) = self.game_object_off_grid_event.try_recv() {
+                        if let Some(game_object) = self.game_objects.get(&game_object_id) {
+                            if game_object.my_type == Types::Player {
+                                self.state = States::Died;
+                            }
+                        }
                     }
                 }
                 _ => (),

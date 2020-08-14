@@ -54,15 +54,28 @@ impl GameObject {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, gravity_force: Vector2<f32>) {
         if let Some(ref mut physics) = self.physics {
-            physics.update(&mut self.location);
+            physics.update(&mut self.location, gravity_force);
         }
     }
 
     pub fn handle_collisions(&mut self, other_game_objects: Vec<&GameObject>) {
         if let Some(ref mut physics) = self.physics {
-            physics.handle_collisions(other_game_objects);
+            physics.handle_collisions(
+                &mut self.location,
+                other_game_objects,
+                &self.height,
+                &self.width,
+            );
+        }
+    }
+
+    pub fn reset(&mut self, location_x: f32, location_y: f32, speed: f32) {
+        self.location.x = location_x;
+        self.location.y = location_y;
+        if let Some(physics) = &mut self.physics {
+            physics.reset(speed);
         }
     }
 }

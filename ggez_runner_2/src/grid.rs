@@ -1,6 +1,8 @@
 use super::GameObject;
+use ggez::nalgebra::Vector2;
 use ggez::GameResult;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 
 #[derive(Debug)]
 pub struct Grid {
@@ -9,6 +11,7 @@ pub struct Grid {
     cells: Vec<Vec<Vec<u64>>>,
     world_width: usize,
     world_height: u8,
+    game_object_off_grid_event: Sender<u64>,
 }
 
 impl Grid {
@@ -17,6 +20,7 @@ impl Grid {
         cell_height: f32,
         world_height: u8,
         world_width: usize,
+        game_object_off_grid_event: Sender<u64>,
     ) -> GameResult<Grid> {
         let mut cells = vec![];
 
@@ -34,6 +38,7 @@ impl Grid {
             cells,
             world_width,
             world_height,
+            game_object_off_grid_event,
         })
     }
 
@@ -75,23 +80,38 @@ impl Grid {
         result
     }
 
-    pub fn update(&mut self, game_objects: &mut HashMap<u64, GameObject>) {
-        self.move_game_objects(game_objects);
+    pub fn update(
+        &mut self,
+        game_objects: &mut HashMap<u64, GameObject>,
+        gravity_force: Vector2<f32>,
+    ) {
+        self.move_game_objects(game_objects, gravity_force);
     }
 
-    fn move_game_objects(&mut self, game_objects: &mut HashMap<u64, GameObject>) {
+    fn move_game_objects(
+        &mut self,
+        game_objects: &mut HashMap<u64, GameObject>,
+        gravity_force: Vector2<f32>,
+    ) {
         // run update on all game objects
         for game_object in game_objects.values_mut() {
             let previous_index_x = (game_object.location.x / self.cell_width) as usize;
             let previous_index_y = (game_object.location.y / self.cell_height) as usize;
-            game_object.update();
+            game_object.update(gravity_force);
             let next_index_x = (game_object.location.x / self.cell_width) as usize;
             let next_index_y = (game_object.location.y / self.cell_height) as usize;
             if previous_index_x == next_index_x && previous_index_y == next_index_y {
                 continue;
             }
             self.cells[previous_index_y][previous_index_x].retain(|id| id != &game_object.id);
-            self.cells[next_index_y][next_index_x].push(game_object.id);
+            if next_index_x >= self.world_width || next_index_y >= self.world_height.into() {
+                println!("Object with id {} is out of the grid", game_object.id);
+                if let Err(error) = self.game_object_off_grid_event.send(game_object.id) {
+                    println!("error sending game object off grid event: {}", error);
+                }
+            } else {
+                self.cells[next_index_y][next_index_x].push(game_object.id);
+            }
         }
     }
 
@@ -99,6 +119,8 @@ impl Grid {
         let x_index = (game_object.location.x / self.cell_width) as usize;
         let y_index = (game_object.location.y / self.cell_height) as usize;
 
-        self.cells[y_index][x_index].retain(|game_object_id| game_object_id != &game_object.id);
+        if x_index < self.world_width && y_index < self.world_height.into() {
+            self.cells[y_index][x_index].retain(|game_object_id| game_object_id != &game_object.id);
+        }
     }
 }
