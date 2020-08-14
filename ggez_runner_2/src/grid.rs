@@ -1,5 +1,5 @@
 use super::GameObject;
-use ggez::nalgebra::Vector2;
+use ggez::nalgebra::{Point2, Vector2};
 use ggez::GameResult;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
@@ -43,10 +43,12 @@ impl Grid {
     }
 
     pub fn add(&mut self, game_object: &GameObject) {
-        let x_index = (game_object.location.x / self.cell_width) as usize;
-        let y_index = (game_object.location.y / self.cell_height) as usize;
+        let index = self.convert_world_location_to_grid_location(
+            game_object.location.x,
+            game_object.location.y,
+        );
 
-        self.cells[y_index][x_index].push(game_object.id);
+        self.cells[index.y][index.x].push(game_object.id);
     }
 
     pub fn query<'a>(
@@ -59,13 +61,11 @@ impl Grid {
     ) -> Vec<&'a GameObject> {
         let mut result = vec![];
 
-        let index_start_x = (start_x / self.cell_width) as usize;
-        let index_start_y = (start_y / self.cell_height) as usize;
-        let index_end_x = (end_x / self.cell_width) as usize;
-        let index_end_y = (end_y / self.cell_height) as usize;
+        let start_index = self.convert_world_location_to_grid_location(start_x, start_y);
+        let end_index = self.convert_world_location_to_grid_location(end_x, end_y);
 
-        for y_index in index_start_y..index_end_y {
-            for x_index in index_start_x..index_end_x {
+        for y_index in start_index.y..end_index.y {
+            for x_index in start_index.x..end_index.x {
                 if y_index >= self.cells.len() || x_index >= self.cells[0].len() {
                     continue;
                 }
@@ -95,32 +95,53 @@ impl Grid {
     ) {
         // run update on all game objects
         for game_object in game_objects.values_mut() {
-            let previous_index_x = (game_object.location.x / self.cell_width) as usize;
-            let previous_index_y = (game_object.location.y / self.cell_height) as usize;
+            let previous_index = self.convert_world_location_to_grid_location(
+                game_object.location.x,
+                game_object.location.y,
+            );
             game_object.update(gravity_force);
-            let next_index_x = (game_object.location.x / self.cell_width) as usize;
-            let next_index_y = (game_object.location.y / self.cell_height) as usize;
-            if previous_index_x == next_index_x && previous_index_y == next_index_y {
+            let next_index = self.convert_world_location_to_grid_location(
+                game_object.location.x,
+                game_object.location.y,
+            );
+            if self.still_in_same_cell(previous_index, next_index) {
                 continue;
             }
-            self.cells[previous_index_y][previous_index_x].retain(|id| id != &game_object.id);
-            if next_index_x >= self.world_width || next_index_y >= self.world_height.into() {
+            self.remove(&game_object);
+            if self.is_outside_of_grid(next_index) {
                 println!("Object with id {} is out of the grid", game_object.id);
                 if let Err(error) = self.game_object_off_grid_event.send(game_object.id) {
                     println!("error sending game object off grid event: {}", error);
                 }
             } else {
-                self.cells[next_index_y][next_index_x].push(game_object.id);
+                self.add(game_object);
             }
         }
     }
 
     pub fn remove(&mut self, game_object: &GameObject) {
-        let x_index = (game_object.location.x / self.cell_width) as usize;
-        let y_index = (game_object.location.y / self.cell_height) as usize;
+        let index = self.convert_world_location_to_grid_location(
+            game_object.location.x,
+            game_object.location.y,
+        );
 
-        if x_index < self.world_width && y_index < self.world_height.into() {
-            self.cells[y_index][x_index].retain(|game_object_id| game_object_id != &game_object.id);
+        if !self.is_outside_of_grid(index) {
+            self.cells[index.y][index.x].retain(|id| id != &game_object.id);
         }
+    }
+
+    fn convert_world_location_to_grid_location(&self, x: f32, y: f32) -> Point2<usize> {
+        Point2::new(
+            (x / self.cell_width) as usize,
+            (y / self.cell_height) as usize,
+        )
+    }
+
+    fn still_in_same_cell(&self, previous_index: Point2<usize>, next_index: Point2<usize>) -> bool {
+        previous_index.x == next_index.x && previous_index.y == next_index.y
+    }
+
+    fn is_outside_of_grid(&self, index: Point2<usize>) -> bool {
+        index.x >= self.world_width || index.y >= self.world_height.into()
     }
 }

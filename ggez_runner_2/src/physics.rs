@@ -41,6 +41,30 @@ impl PlayerPhysics {
             died_event_send,
         }
     }
+
+    fn is_clipping_into_side_of_game_object(
+        &self,
+        our_location: &Vector2<f32>,
+        our_width: &f32,
+        our_height: &f32,
+        other: &GameObject,
+    ) -> bool {
+        our_location.y + our_height > other.location.y
+            && our_location.x + our_width > other.location.x
+            && our_location.x < other.location.x
+    }
+
+    fn is_in_game_object(
+        &self,
+        our_location: &Vector2<f32>,
+        our_width: &f32,
+        our_height: &f32,
+        other: &GameObject,
+    ) -> bool {
+        our_location.y + our_height > other.location.y
+            && our_location.x + our_width < other.location.x + other.width
+            && our_location.x > other.location.x
+    }
 }
 
 impl Physics for PlayerPhysics {
@@ -73,19 +97,12 @@ impl Physics for PlayerPhysics {
             }
 
             if Types::Floor == game_object.my_type {
-                if location.y + height > game_object.location.y {
-                    if location.x + width > game_object.location.x
-                        && location.x < game_object.location.x
-                    {
-                        self.velocity.x = 0.0;
-                        location.x = game_object.location.x - width;
-                        return;
-                    }
-
-                    if location.x > game_object.location.x {
-                        location.y = game_object.location.y - height;
-                        self.velocity.y = 0.0;
-                    }
+                if self.is_clipping_into_side_of_game_object(location, width, height, game_object) {
+                    self.velocity.x = 0.0;
+                    location.x = game_object.location.x - width;
+                } else if self.is_in_game_object(location, width, height, game_object) {
+                    location.y = game_object.location.y - height;
+                    self.velocity.y = 0.0;
                 }
             }
         }

@@ -7,7 +7,7 @@ use ggez::{graphics, Context};
 #[derive(Debug)]
 pub struct GameObject {
     pub id: u64,
-    width: f32,
+    pub width: f32,
     height: f32,
     pub location: Vector2<f32>,
     pub my_type: Types,
