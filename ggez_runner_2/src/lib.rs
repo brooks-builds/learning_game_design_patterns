@@ -41,6 +41,7 @@ pub struct GameState {
     gravity_force: Vector2<f32>,
     game_object_off_grid_event: Receiver<u64>,
     interface: Interface,
+    jump_command: Sender<()>,
 }
 
 impl GameState {
@@ -50,6 +51,7 @@ impl GameState {
         let (died_event_send, died_event_receive) = channel::<()>();
         let (game_object_off_grid_event_send, game_object_off_grid_event_receive) =
             channel::<u64>();
+        let (jump_command_send, jump_command_receive) = channel::<()>();
         let camera = Camera::new(
             game_data.player.start_x - game_data.camera_chase_x,
             0.0,
@@ -73,9 +75,17 @@ impl GameState {
             &mut grid,
             &game_data,
             &mut next_object_id,
+            &mut game_objects,
+        );
+
+        Self::create_player(
+            &mut next_object_id,
+            &game_data,
             player_moved_event_send.clone(),
             won_event_send,
             died_event_send,
+            jump_command_receive,
+            &mut grid,
             &mut game_objects,
         );
 
@@ -95,6 +105,7 @@ impl GameState {
             gravity_force,
             game_object_off_grid_event: game_object_off_grid_event_receive,
             interface,
+            jump_command: jump_command_send,
         })
     }
 
@@ -102,9 +113,6 @@ impl GameState {
         grid: &mut Grid,
         game_data: &GameData,
         next_object_id: &mut u64,
-        player_moved_event_send: Sender<f32>,
-        won_event_send: Sender<()>,
-        died_event_send: Sender<()>,
         game_objects: &mut HashMap<u64, GameObject>,
     ) {
         for (index, level_type) in game_data.level.iter().enumerate() {
@@ -128,23 +136,6 @@ impl GameState {
                     *next_object_id += 1;
                     grid.add(&start);
                     game_objects.insert(start.id, start);
-                    let player = GameObject::new(
-                        *next_object_id,
-                        game_data.player.body_width,
-                        game_data.player.body_height,
-                        game_data.player.start_x,
-                        game_data.player.start_y,
-                        Types::Player,
-                        Some(Box::new(PlayerPhysics::new(
-                            game_data.player.speed,
-                            player_moved_event_send.clone(),
-                            won_event_send.clone(),
-                            died_event_send.clone(),
-                        ))),
-                    );
-                    grid.add(&player);
-                    *next_object_id += 1;
-                    game_objects.insert(player.id, player);
                 }
                 Types::SpikeUp => {
                     Self::create_floor_object(next_object_id, game_data, index, grid, game_objects);
@@ -182,6 +173,37 @@ impl GameState {
                 _ => (),
             }
         }
+    }
+
+    fn create_player(
+        next_object_id: &mut u64,
+        game_data: &GameData,
+        player_moved_event_send: Sender<f32>,
+        won_event_send: Sender<()>,
+        died_event_send: Sender<()>,
+        jump_command: Receiver<()>,
+        grid: &mut Grid,
+        game_objects: &mut HashMap<u64, GameObject>,
+    ) {
+        let player = GameObject::new(
+            *next_object_id,
+            game_data.player.body_width,
+            game_data.player.body_height,
+            game_data.player.start_x,
+            game_data.player.start_y,
+            Types::Player,
+            Some(Box::new(PlayerPhysics::new(
+                game_data.player.speed,
+                player_moved_event_send,
+                won_event_send,
+                died_event_send,
+                jump_command,
+                game_data.player.jump_force,
+            ))),
+        );
+        grid.add(&player);
+        *next_object_id += 1;
+        game_objects.insert(player.id, player);
     }
 
     fn create_floor_object(
@@ -332,7 +354,13 @@ impl EventHandler for GameState {
                     self.reset_game();
                 }
             }
-            _ => (),
+            States::Playing => {
+                if keycode == KeyCode::Space {
+                    if let Err(error) = self.jump_command.send(()) {
+                        println!("Error sending jump command: {}", error);
+                    }
+                }
+            }
         }
     }
 }

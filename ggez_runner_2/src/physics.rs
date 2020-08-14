@@ -1,6 +1,13 @@
 use super::{GameObject, Types};
 use ggez::nalgebra::Vector2;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
+
+#[derive(Debug, PartialEq)]
+enum JumpingState {
+    Standing,
+    Jumping,
+    Falling,
+}
 
 pub trait Physics
 where
@@ -25,6 +32,9 @@ pub struct PlayerPhysics {
     moved_event_send: Sender<f32>,
     won_event_send: Sender<()>,
     died_event_send: Sender<()>,
+    jump_command: Receiver<()>,
+    jump_velocity: Vector2<f32>,
+    jumping_state: JumpingState,
 }
 
 impl PlayerPhysics {
@@ -33,12 +43,17 @@ impl PlayerPhysics {
         moved_event_send: Sender<f32>,
         won_event_send: Sender<()>,
         died_event_send: Sender<()>,
+        jump_command: Receiver<()>,
+        jump_force: f32,
     ) -> PlayerPhysics {
         PlayerPhysics {
             velocity: Vector2::new(speed, 0.0),
             moved_event_send,
             won_event_send,
             died_event_send,
+            jump_command,
+            jump_velocity: Vector2::new(0.0, -jump_force),
+            jumping_state: JumpingState::Standing,
         }
     }
 
@@ -52,7 +67,7 @@ impl PlayerPhysics {
         location.x < floor.location.x + floor.width
             && location.x + width > floor.location.x
             && location.y + height > floor.location.y
-            && location.y + height <= floor.location.y + self.velocity.y
+            && location.y + height <= floor.location.y + self.velocity.y.abs()
     }
 
     fn colliding_with(
@@ -75,6 +90,10 @@ impl PlayerPhysics {
     ) -> bool {
         location.x > game_object.location.x + game_object.width
     }
+
+    fn is_standing_or_falling(&self) -> bool {
+        self.jumping_state == JumpingState::Falling || self.jumping_state == JumpingState::Standing
+    }
 }
 
 impl Physics for PlayerPhysics {
@@ -83,6 +102,19 @@ impl Physics for PlayerPhysics {
         *location += self.velocity;
         if let Err(error) = self.moved_event_send.send(self.velocity.x) {
             println!("could not send location when player moving: {}", error);
+        }
+
+        if let Ok(_) = self.jump_command.try_recv() {
+            if self.jumping_state == JumpingState::Standing {
+                self.velocity += self.jump_velocity;
+                self.jumping_state = JumpingState::Jumping;
+            }
+        }
+
+        if self.jumping_state == JumpingState::Jumping {
+            if self.velocity.y > 0.0 {
+                self.jumping_state = JumpingState::Falling;
+            }
         }
     }
 
@@ -111,13 +143,19 @@ impl Physics for PlayerPhysics {
             }
 
             if Types::Floor == game_object.my_type {
-                if self.is_standing_on(location, width, height, game_object) {
-                    println!("standing on a floor");
+                if self.is_standing_or_falling()
+                    && self.is_standing_on(location, width, height, game_object)
+                {
+                    self.jumping_state = JumpingState::Standing;
                     location.y = game_object.location.y - height;
                     self.velocity.y = 0.0;
                 } else if self.colliding_with(location, width, height, game_object) {
-                    self.velocity.x = 0.0;
-                    location.x = game_object.location.x - width;
+                    if self.jumping_state == JumpingState::Jumping {
+                        location.y = game_object.location.y - height;
+                    } else {
+                        self.velocity.x = 0.0;
+                        location.x = game_object.location.x - width;
+                    }
                 }
             }
         }
