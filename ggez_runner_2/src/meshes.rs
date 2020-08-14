@@ -1,5 +1,5 @@
 use super::GameData;
-use ggez::graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, WHITE};
+use ggez::graphics::{Color, DrawMode, Image, Mesh, MeshBuilder, Rect, WHITE};
 use ggez::nalgebra::Point2;
 use ggez::{Context, GameResult};
 
@@ -10,6 +10,11 @@ pub struct Meshes {
     pub player: Mesh,
     pub spike_up: Mesh,
     pub end: Mesh,
+    pub player_standing: Image,
+    pub player_walk_1: Image,
+    pub player_walk_2: Image,
+    pub player_jumping: Image,
+    pub player_dead: Image,
 }
 
 impl Meshes {
@@ -31,6 +36,11 @@ impl Meshes {
             )?,
             spike_up: Self::create_spike_mesh(context, game_data.cell_size, game_data.cell_size)?,
             end: Self::create_end_mesh(context, game_data.end_width, game_data.cell_size)?,
+            player_standing: Image::new(context, "/bunny2_stand.png")?,
+            player_walk_1: Image::new(context, "/bunny2_walk1.png")?,
+            player_walk_2: Image::new(context, "/bunny2_walk2.png")?,
+            player_jumping: Image::new(context, "/bunny2_jump.png")?,
+            player_dead: Image::new(context, "/bunny2_hurt.png")?,
         })
     }
 

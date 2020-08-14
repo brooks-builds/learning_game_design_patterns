@@ -1,4 +1,5 @@
 mod camera;
+mod draw;
 mod errors;
 pub mod game_data;
 pub mod game_object;
@@ -10,6 +11,7 @@ mod states;
 mod types;
 
 use camera::Camera;
+use draw::PlayerDraw;
 pub use errors::CustomError;
 use game_data::GameData;
 use game_object::GameObject;
@@ -42,6 +44,7 @@ pub struct GameState {
     game_object_off_grid_event: Receiver<u64>,
     interface: Interface,
     jump_command: Sender<()>,
+    run_command: Sender<()>,
 }
 
 impl GameState {
@@ -52,6 +55,7 @@ impl GameState {
         let (game_object_off_grid_event_send, game_object_off_grid_event_receive) =
             channel::<u64>();
         let (jump_command_send, jump_command_receive) = channel::<()>();
+        let (run_command_send, run_command_receive) = channel::<()>();
         let camera = Camera::new(
             game_data.player.start_x - game_data.camera_chase_x,
             0.0,
@@ -87,6 +91,7 @@ impl GameState {
             jump_command_receive,
             &mut grid,
             &mut game_objects,
+            run_command_receive,
         );
 
         let gravity_force = Vector2::new(0.0, game_data.gravity_force);
@@ -106,6 +111,7 @@ impl GameState {
             game_object_off_grid_event: game_object_off_grid_event_receive,
             interface,
             jump_command: jump_command_send,
+            run_command: run_command_send,
         })
     }
 
@@ -131,6 +137,7 @@ impl GameState {
                         game_data.floor_y - game_data.cell_size,
                         Types::Start,
                         None,
+                        None,
                     );
 
                     *next_object_id += 1;
@@ -148,6 +155,7 @@ impl GameState {
                         game_data.floor_y - game_data.cell_size,
                         Types::SpikeUp,
                         None,
+                        None,
                     );
 
                     grid.add(&spike);
@@ -164,6 +172,7 @@ impl GameState {
                         game_data.cell_size * index as f32,
                         game_data.floor_y - game_data.cell_size,
                         Types::End,
+                        None,
                         None,
                     );
                     grid.add(&end);
@@ -184,6 +193,7 @@ impl GameState {
         jump_command: Receiver<()>,
         grid: &mut Grid,
         game_objects: &mut HashMap<u64, GameObject>,
+        run_command: Receiver<()>,
     ) {
         let player = GameObject::new(
             *next_object_id,
@@ -199,7 +209,9 @@ impl GameState {
                 died_event_send,
                 jump_command,
                 game_data.player.jump_force,
+                run_command,
             ))),
+            Some(Box::new(PlayerDraw::new())),
         );
         grid.add(&player);
         *next_object_id += 1;
@@ -221,6 +233,7 @@ impl GameState {
             game_data.floor_y,
             Types::Floor,
             None,
+            None,
         );
         *next_object_id += 1;
         grid.add(&floor);
@@ -233,21 +246,15 @@ impl GameState {
             .iter_mut()
             .find(|(_game_object_id, game_object)| game_object.my_type == Types::Player)
         {
-            let old_player_location_x = player.location.x;
             self.grid.remove(player);
             player.reset(
                 self.game_data.player.start_x,
                 self.game_data.player.start_y,
                 self.game_data.player.speed,
             );
-            if let Err(error) = self
-                .player_moved_event_send
-                .send(player.location.x - old_player_location_x)
-            {
-                println!("error resetting camera location: {}", error);
-            }
             self.grid.add(player);
             self.state = States::NotStarted;
+            self.camera.reset();
         }
     }
 
@@ -310,9 +317,9 @@ impl EventHandler for GameState {
 
         self.interface.draw(&self.state, context)?;
 
-        if let Err(error) = self
-            .camera
-            .draw(&self.grid, &self.meshes, context, &self.game_objects)
+        if let Err(error) =
+            self.camera
+                .draw(&self.grid, &self.meshes, context, &mut self.game_objects)
         {
             match error {
                 CustomError::GgezGameError(error) => return Err(error),
@@ -342,6 +349,9 @@ impl EventHandler for GameState {
             States::NotStarted => {
                 if keycode == KeyCode::Return {
                     self.state = States::Playing;
+                    if let Err(error) = self.run_command.send(()) {
+                        println!("Error sending run command: {}", error);
+                    }
                 }
             }
             States::Won => {

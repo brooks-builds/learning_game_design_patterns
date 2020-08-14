@@ -7,6 +7,7 @@ use std::sync::mpsc::Receiver;
 
 pub struct Camera {
     pub location: Vector2<f32>,
+    initial_location: Vector2<f32>,
     width: f32,
     height: f32,
     player_moved_event_receive: Receiver<f32>,
@@ -20,8 +21,10 @@ impl Camera {
         height: f32,
         player_moved_event_receive: Receiver<f32>,
     ) -> Camera {
+        let location = Vector2::new(location_x, location_y);
         Camera {
-            location: Vector2::new(location_x, location_y),
+            location,
+            initial_location: location.clone(),
             width,
             height,
             player_moved_event_receive,
@@ -29,13 +32,13 @@ impl Camera {
     }
 
     pub fn draw(
-        &self,
+        &mut self,
         grid: &Grid,
         meshes: &Meshes,
         context: &mut Context,
-        game_objects: &HashMap<u64, GameObject>,
+        game_objects: &mut HashMap<u64, GameObject>,
     ) -> Result<(), CustomError> {
-        let game_objects = grid.query(
+        let mut game_objects = grid.query_mut(
             self.location.x,
             self.location.y,
             self.location.x + self.width,
@@ -66,5 +69,9 @@ impl Camera {
         if let Ok(player_moved_x) = self.player_moved_event_receive.try_recv() {
             self.location.x += player_moved_x
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.location = self.initial_location.clone();
     }
 }

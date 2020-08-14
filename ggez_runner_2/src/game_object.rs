@@ -1,5 +1,6 @@
 use super::physics::Physics;
-use super::{CustomError, Meshes, Types};
+use super::{draw, CustomError, Meshes, Types};
+use draw::Draw;
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, Context};
@@ -12,6 +13,7 @@ pub struct GameObject {
     pub location: Vector2<f32>,
     pub my_type: Types,
     pub physics: Option<Box<dyn Physics>>,
+    pub draw_system: Option<Box<dyn Draw>>,
 }
 
 impl GameObject {
@@ -23,6 +25,7 @@ impl GameObject {
         location_y: f32,
         my_type: Types,
         physics: Option<Box<dyn Physics>>,
+        draw_system: Option<Box<dyn Draw>>,
     ) -> GameObject {
         GameObject {
             id,
@@ -31,14 +34,24 @@ impl GameObject {
             location: Vector2::new(location_x, location_y),
             my_type,
             physics,
+            draw_system,
         }
     }
 
-    pub fn draw(&self, meshes: &Meshes, context: &mut Context) -> Result<(), CustomError> {
+    pub fn draw(&mut self, meshes: &Meshes, context: &mut Context) -> Result<(), CustomError> {
+        if let Some(draw_system) = &mut self.draw_system {
+            draw_system.draw(
+                &self.my_type,
+                meshes,
+                &self.physics,
+                context,
+                &self.location,
+            );
+            return Ok(());
+        }
         let mesh = match self.my_type {
             Types::Floor => &meshes.floor,
             Types::Start => &meshes.start,
-            Types::Player => &meshes.player,
             Types::SpikeUp => &meshes.spike_up,
             Types::End => &meshes.end,
             _ => return Err(CustomError::CouldNotFindType),
@@ -89,6 +102,7 @@ impl Clone for GameObject {
             location: self.location,
             my_type: self.my_type.clone(),
             physics: None,
+            draw_system: None,
         }
     }
 }

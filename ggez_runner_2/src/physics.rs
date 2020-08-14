@@ -3,10 +3,12 @@ use ggez::nalgebra::Vector2;
 use std::sync::mpsc::{Receiver, Sender};
 
 #[derive(Debug, PartialEq)]
-enum JumpingState {
+pub enum PhysicsState {
     Standing,
     Jumping,
     Falling,
+    Running,
+    Dead,
 }
 
 pub trait Physics
@@ -24,17 +26,21 @@ where
     );
 
     fn reset(&mut self, speed: f32);
+
+    fn get_state(&self) -> &PhysicsState;
 }
 
 #[derive(Debug)]
 pub struct PlayerPhysics {
     velocity: Vector2<f32>,
+    speed: f32,
     moved_event_send: Sender<f32>,
     won_event_send: Sender<()>,
     died_event_send: Sender<()>,
     jump_command: Receiver<()>,
     jump_velocity: Vector2<f32>,
-    jumping_state: JumpingState,
+    pub state: PhysicsState,
+    run_command: Receiver<()>,
 }
 
 impl PlayerPhysics {
@@ -45,15 +51,18 @@ impl PlayerPhysics {
         died_event_send: Sender<()>,
         jump_command: Receiver<()>,
         jump_force: f32,
+        run_command: Receiver<()>,
     ) -> PlayerPhysics {
         PlayerPhysics {
-            velocity: Vector2::new(speed, 0.0),
+            velocity: Vector2::new(0.0, 0.0),
+            speed,
             moved_event_send,
             won_event_send,
             died_event_send,
             jump_command,
             jump_velocity: Vector2::new(0.0, -jump_force),
-            jumping_state: JumpingState::Standing,
+            state: PhysicsState::Standing,
+            run_command,
         }
     }
 
@@ -91,8 +100,8 @@ impl PlayerPhysics {
         location.x > game_object.location.x + game_object.width
     }
 
-    fn is_standing_or_falling(&self) -> bool {
-        self.jumping_state == JumpingState::Falling || self.jumping_state == JumpingState::Standing
+    fn is_running_or_falling(&self) -> bool {
+        self.state == PhysicsState::Falling || self.state == PhysicsState::Running
     }
 }
 
@@ -105,16 +114,21 @@ impl Physics for PlayerPhysics {
         }
 
         if let Ok(_) = self.jump_command.try_recv() {
-            if self.jumping_state == JumpingState::Standing {
+            if self.state == PhysicsState::Running {
                 self.velocity += self.jump_velocity;
-                self.jumping_state = JumpingState::Jumping;
+                self.state = PhysicsState::Jumping;
             }
         }
 
-        if self.jumping_state == JumpingState::Jumping {
+        if self.state == PhysicsState::Jumping {
             if self.velocity.y > 0.0 {
-                self.jumping_state = JumpingState::Falling;
+                self.state = PhysicsState::Falling;
             }
+        }
+
+        if let Ok(_) = self.run_command.try_recv() {
+            self.velocity.x = self.speed;
+            self.state = PhysicsState::Running;
         }
     }
 
@@ -139,18 +153,19 @@ impl Physics for PlayerPhysics {
                     if let Err(error) = self.died_event_send.send(()) {
                         println!("Error sending died event: {}", error);
                     }
+                    self.state = PhysicsState::Dead;
                 }
             }
 
             if Types::Floor == game_object.my_type {
-                if self.is_standing_or_falling()
+                if self.is_running_or_falling()
                     && self.is_standing_on(location, width, height, game_object)
                 {
-                    self.jumping_state = JumpingState::Standing;
+                    self.state = PhysicsState::Running;
                     location.y = game_object.location.y - height;
                     self.velocity.y = 0.0;
                 } else if self.colliding_with(location, width, height, game_object) {
-                    if self.jumping_state == JumpingState::Jumping {
+                    if self.state == PhysicsState::Jumping {
                         location.y = game_object.location.y - height;
                     } else {
                         self.velocity.x = 0.0;
@@ -162,7 +177,11 @@ impl Physics for PlayerPhysics {
     }
 
     fn reset(&mut self, speed: f32) {
-        self.velocity.x = speed;
-        self.velocity.y = 0.0;
+        self.velocity *= 0.0;
+        self.state = PhysicsState::Standing;
+    }
+
+    fn get_state(&self) -> &PhysicsState {
+        &self.state
     }
 }
