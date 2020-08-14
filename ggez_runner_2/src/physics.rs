@@ -42,30 +42,6 @@ impl PlayerPhysics {
         }
     }
 
-    fn is_clipping_into_side_of_game_object(
-        &self,
-        our_location: &Vector2<f32>,
-        our_width: &f32,
-        our_height: &f32,
-        other: &GameObject,
-    ) -> bool {
-        our_location.y + our_height > other.location.y
-            && our_location.x + our_width > other.location.x
-            && our_location.x < other.location.x
-    }
-
-    fn is_in_game_object(
-        &self,
-        our_location: &Vector2<f32>,
-        our_width: &f32,
-        our_height: &f32,
-        other: &GameObject,
-    ) -> bool {
-        our_location.y + our_height > other.location.y
-            && our_location.x + our_width < other.location.x + other.width
-            && our_location.x > other.location.x
-    }
-
     fn is_standing_on(
         &self,
         location: &mut Vector2<f32>,
@@ -91,6 +67,14 @@ impl PlayerPhysics {
             && location.y + height > game_object.location.y
             && location.y < game_object.location.y + game_object.height
     }
+
+    fn is_past_other_game_object(
+        &self,
+        location: &mut Vector2<f32>,
+        game_object: &GameObject,
+    ) -> bool {
+        location.x > game_object.location.x + game_object.width
+    }
 }
 
 impl Physics for PlayerPhysics {
@@ -111,14 +95,18 @@ impl Physics for PlayerPhysics {
     ) {
         for game_object in game_objects {
             if Types::End == game_object.my_type {
-                if let Err(error) = self.won_event_send.send(()) {
-                    println!("Error sending win event: {}", error);
+                if self.is_past_other_game_object(location, game_object) {
+                    if let Err(error) = self.won_event_send.send(()) {
+                        println!("Error sending win event: {}", error);
+                    }
                 }
             }
 
             if Types::SpikeUp == game_object.my_type {
-                if let Err(error) = self.died_event_send.send(()) {
-                    println!("Error sending died event: {}", error);
+                if self.colliding_with(location, width, height, game_object) {
+                    if let Err(error) = self.died_event_send.send(()) {
+                        println!("Error sending died event: {}", error);
+                    }
                 }
             }
 

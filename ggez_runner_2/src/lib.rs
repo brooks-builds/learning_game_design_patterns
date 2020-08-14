@@ -14,9 +14,9 @@ pub use errors::CustomError;
 use game_data::GameData;
 use game_object::GameObject;
 use ggez::event::EventHandler;
-use ggez::graphics::{Color, DrawParam, Font, Scale, Text};
+use ggez::graphics::Color;
 use ggez::input::keyboard::{KeyCode, KeyMods};
-use ggez::nalgebra::{Point2, Vector2};
+use ggez::nalgebra::Vector2;
 use ggez::{graphics, timer, Context, GameResult};
 use grid::Grid;
 use interface::Interface;
@@ -206,10 +206,10 @@ impl GameState {
     }
 
     fn reset_game(&mut self) {
-        if let Some((player_id, player)) = self
+        if let Some((_player_id, player)) = self
             .game_objects
             .iter_mut()
-            .find(|(game_object_id, game_object)| game_object.my_type == Types::Player)
+            .find(|(_game_object_id, game_object)| game_object.my_type == Types::Player)
         {
             let old_player_location_x = player.location.x;
             self.grid.remove(player);
@@ -232,10 +232,10 @@ impl GameState {
     fn handle_collisions(&mut self) {
         let game_objects_clone = self.game_objects.clone();
 
-        if let Some((player_id, player)) = self
+        if let Some((_player_id, player)) = self
             .game_objects
             .iter_mut()
-            .find(|(game_object_id, game_object)| game_object.my_type == Types::Player)
+            .find(|(_game_object_id, game_object)| game_object.my_type == Types::Player)
         {
             let nearby_game_objects = self.grid.query(
                 player.location.x,
