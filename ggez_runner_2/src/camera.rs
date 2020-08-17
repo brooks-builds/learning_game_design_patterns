@@ -1,4 +1,4 @@
-use super::{CustomError, GameObject, Grid, Meshes};
+use super::{CustomError, GameObject, Grid, Meshes, States};
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{graphics, Context};
@@ -32,13 +32,14 @@ impl Camera {
     }
 
     pub fn draw(
-        &mut self,
+        &self,
         grid: &Grid,
         meshes: &Meshes,
         context: &mut Context,
         game_objects: &mut HashMap<u64, GameObject>,
+        game_state: &States,
     ) -> Result<(), CustomError> {
-        let mut game_objects = grid.query_mut(
+        let game_objects = grid.query(
             self.location.x,
             self.location.y,
             self.location.x + self.width,
@@ -58,7 +59,7 @@ impl Camera {
             return Err(CustomError::GgezGameError(error));
         }
         for game_object in game_objects {
-            game_object.draw(meshes, context)?;
+            game_object.draw(meshes, context, game_state)?;
         }
         graphics::pop_transform(context);
 

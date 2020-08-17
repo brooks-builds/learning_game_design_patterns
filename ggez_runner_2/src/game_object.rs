@@ -1,5 +1,5 @@
 use super::physics::Physics;
-use super::{draw, CustomError, Meshes, Types};
+use super::{draw, CustomError, Meshes, States, Types};
 use draw::Draw;
 use ggez::graphics::DrawParam;
 use ggez::nalgebra::{Point2, Vector2};
@@ -38,14 +38,20 @@ impl GameObject {
         }
     }
 
-    pub fn draw(&mut self, meshes: &Meshes, context: &mut Context) -> Result<(), CustomError> {
-        if let Some(draw_system) = &mut self.draw_system {
+    pub fn draw(
+        &self,
+        meshes: &Meshes,
+        context: &mut Context,
+        state: &States,
+    ) -> Result<(), CustomError> {
+        if let Some(draw_system) = &self.draw_system {
             draw_system.draw(
                 &self.my_type,
                 meshes,
                 &self.physics,
                 context,
                 &self.location,
+                state,
             );
             return Ok(());
         }

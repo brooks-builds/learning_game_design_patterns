@@ -309,6 +309,7 @@ impl EventHandler for GameState {
             }
         }
         self.camera.update();
+        self.grid.graphics_update(&mut self.game_objects);
         Ok(())
     }
 
@@ -317,10 +318,13 @@ impl EventHandler for GameState {
 
         self.interface.draw(&self.state, context)?;
 
-        if let Err(error) =
-            self.camera
-                .draw(&self.grid, &self.meshes, context, &mut self.game_objects)
-        {
+        if let Err(error) = self.camera.draw(
+            &self.grid,
+            &self.meshes,
+            context,
+            &mut self.game_objects,
+            &self.state,
+        ) {
             match error {
                 CustomError::GgezGameError(error) => return Err(error),
                 _ => panic!("unknown draw error"),

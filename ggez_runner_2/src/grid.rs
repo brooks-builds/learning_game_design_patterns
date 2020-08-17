@@ -80,41 +80,19 @@ impl Grid {
         result
     }
 
-    pub fn query_mut<'a>(
-        &mut self,
-        start_x: f32,
-        start_y: f32,
-        end_x: f32,
-        end_y: f32,
-        game_objects: &'a mut HashMap<u64, GameObject>,
-    ) -> Vec<&'a mut GameObject> {
-        let mut result = vec![];
-
-        let start_index = self.convert_world_location_to_grid_location(start_x, start_y);
-        let end_index = self.convert_world_location_to_grid_location(end_x, end_y);
-
-        for y_index in start_index.y..end_index.y {
-            for x_index in start_index.x..end_index.x {
-                if y_index >= self.cells.len() || x_index >= self.cells[0].len() {
-                    continue;
-                }
-                for id in self.cells[y_index][x_index].iter_mut() {
-                    if let Some(game_object) = game_objects.get_mut(id) {
-                        result.push(game_object);
-                    }
-                }
-            }
-        }
-
-        result
-    }
-
     pub fn update(
         &mut self,
         game_objects: &mut HashMap<u64, GameObject>,
         gravity_force: Vector2<f32>,
     ) {
         self.move_game_objects(game_objects, gravity_force);
+    }
+    pub fn graphics_update(&mut self, game_objects: &mut HashMap<u64, GameObject>) {
+        for (game_object_id, game_object) in game_objects.iter_mut() {
+            if let Some(ref mut draw_system) = game_object.draw_system {
+                draw_system.update();
+            }
+        }
     }
 
     fn move_game_objects(
